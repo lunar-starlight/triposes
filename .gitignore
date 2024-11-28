@@ -1,1 +1,7 @@
 /.lake
+blueprint/print
+blueprint/web
+blueprint/lean_decls
+
+blueprint/src/print.pdf
+blueprint/src/web.paux
