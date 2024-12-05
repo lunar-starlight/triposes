@@ -1,10 +1,59 @@
 \section{Definition of a tripos}
 
+\begin{definition}[Type-Tripos]
+    A \emph{Type-tripos} is a functor \(P : \ty^\op \to \ha\) between poset-enriched categories \(\ty\) of types and \(\ha\) of heyting algebras, that further satisfies the following:
+    \begin{enumerate}
+        \item For each types \(X\) and \(Y\), and \(f : X \to Y\) the map \(Pf\) has monotone left and right adjoints, \(\exists_f\) and \(\forall_f\) respectively
+        \item These further satisfy the Beck-Chevalley condition
+        %\item For each type \(X\) there is a type \(\pi(X)\) and an element \(\in_X \in P(X\prod\pi(X))\) satisfying ...
+        \item There is a type \(\Sigma\) and an element \(\sigma \in P(\Sigma)\) such that for every type \(X\) and every \(\phi \in P(X)\) there is a morphism \([\phi] : X \to \Sigma\) such that \(\phi = P([\phi])(\sigma)\)
+    \end{enumerate}
+\end{definition}
+
+How to implement this is not at all clear. I think most of the work will actually go into defining this.
+
 \section{Definition of a partial equivalence relation}
+
+\begin{definition}
+    A \emph{partial equivalence relation} on a type \(X\) over a Type-tripos \(P\) is a map \([-=-]: X×X → P(X)\) that satisfies
+    \begin{enumerate}
+        \item \([a=b] ≤ [b=a]\)
+        \item \([a=b]∧[b=c] ≤ [a=c]\)
+    \end{enumerate}
+\end{definition}
+
+In ``the internal language'' the first condition is symmetry and the second is transitivity. So a partial equivalence relation over \(P\) is a ``symmetric transitive relation internal to some language in \(P\)''.
+
+\begin{definition}
+    A morphism between types \(X\) and \(Y\) along with PERs \([-=_X-]\) and \([-=_Y-]\) over \(P\) is a map \([f(-)=-] : X×Y → P(Y)\) such that
+    \begin{enumerate}
+        \item \([a=_Xa']∧[f(a')=b]≤ [f(a) = b]\)
+        \item \([f(a) = b]∧[b=_Yb'] ≤ [f(a) = b']\)
+        \item \([f(a)=b]∧[f(a)=b'] ≤ [b=_Yb']\)
+        \item \([a=_Xa] ≤ ∃_{π} [f(a) = b]\)
+    \end{enumerate}
+\end{definition}
+
+\begin{remark}
+    The \(π\) in the fourth condition is the projection map \(X×Y → Y\).
+\end{remark}
+
+Again, the first two properties here are coherences with the PERs on the domain and codomain, and the other two are uniqueness and totality of a relation. So functions are defined as ``functional relations internal to \(P\)''.
 
 \section{Tripos to topos construction}
 
+\begin{definition}
+    To a Type-tripos \(P\) we can associate the category \(\ty[P]\) of types along with partial equivalence relations over \(P\) with morphisms as above.
+\end{definition}
+
+\begin{theorem}[Pitts]
+    The category \(\ty[P]\) is a topos.
+\end{theorem}
+
+
 \section{Definition of a tripos language}
+
+TBD once I settle whether I can do the above in a general category instead of \(\ty\).
 
 \section{Tripos to topos construction bis.}
 
