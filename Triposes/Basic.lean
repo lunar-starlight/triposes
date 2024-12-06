@@ -37,7 +37,9 @@ class TypeTripos : Type (u + 1) where
   σIsGeneric : ∀ {X : Type u} (φ : obj X), φ = map (bracket φ) σ
 
 def swap {X Y : Type u} : X × Y → Y × X := fun ⟨x, y⟩ => ⟨y, x⟩
+def diag {X : Type u} : X → X × X := fun x => ⟨x, x⟩
 def proj {X Y : Type u} : X × Y → Y := fun ⟨_, y⟩ => y
+def proj' {X Y : Type u} : X × Y → X := fun ⟨x, _⟩ => x
 def 𝔸π {P : TypeTripos} {X Y : Type u} := P.𝔸 (P.map (@proj X Y))
 
 def proj₃₁ {X Y Z : Type u} : X × Y × Z → Y × Z := fun ⟨_, y, z⟩ => ⟨y, z⟩
@@ -57,7 +59,8 @@ section PER
 variable {X : Type u} (P : TypeTripos) (rel : P.obj (X × X))
 #check P.map proj₃₃ rel
 
-def isTrue {P : TypeTripos} {Z : Type u} (p : P.obj Z) := (P.obj PUnit).str.top = (P.𝔸 (fun _ => PUnit.unit)).map p
+def isTrue {P : TypeTripos} {Z : Type u} (p : P.obj Z) := (P.obj Z).str.top = p
+def isTrue' {P : TypeTripos} {Z : Type u} (p : P.obj Z) := (P.obj PUnit).str.top = (P.𝔸 (fun _ => PUnit.unit)).map p
 
 class PartialEquivalenceRelation (X : Type u) (P : TypeTripos) : Type (u + 1) where
   rel : P.obj (X × X)
@@ -66,6 +69,9 @@ class PartialEquivalenceRelation (X : Type u) (P : TypeTripos) : Type (u + 1) wh
 
 class PartialEquivalenceRelationHom {X Y : Type u} {P : TypeTripos} (relX : PartialEquivalenceRelation X P) (relY : PartialEquivalenceRelation Y P) : Type (u + 1) where
   map : P.obj (X × Y)
-  congrDom : ∀ {x x' : X} {y : Y}, relX.rel x x' ⊓ map x' y ≤ map x y
+  congrDom : isTrue (P.map proj₃₃ relX.rel ⊓ P.map proj₃₁ map ⇨ P.map proj₃₂ map)
+  congrCod : isTrue (P.map proj₃₃ map ⊓ P.map proj₃₁ relY.rel ⇨ P.map proj₃₂ map)
+  unique : isTrue (P.map proj₃₃ map ⊓ P.map proj₃₂ map ⇨ P.map proj₃₁ relY.rel)
+  total : isTrue (P.map diag relX.rel ⇨ (P.𝔼 proj').map map)
 
 end PER
