@@ -5,3 +5,5 @@ blueprint/lean_decls
 
 blueprint/src/print.pdf
 blueprint/src/web.paux
+Triposes/Cartesian.lean
+Triposes/Test.lean
