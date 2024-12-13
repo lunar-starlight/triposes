@@ -1,4 +1,4 @@
-import Triposes.Advanced
+import Triposes.Basic
 
 open CategoryTheory
 open MonoidalCategory
@@ -67,9 +67,7 @@ namespace Language
   @[term_elab letVarsI]
   def elabLetVarsI : TermElab := λ stx type? =>
     match stx with
-    | `(let_vars_i $n | $x in $body) => do
-      let stx ← `(let $x := Expr.var $n; $body)
-      elabTerm stx type?
+    | `(let_vars_i $_ | in $body) => elabTerm body type?
     | `(let_vars_i $n | $x,$xs,* in $body) => do
       let stx ← `(let $x := Expr.var $n; let_vars_i ($n+1) | $xs,* in $body)
       elabTerm stx type?
