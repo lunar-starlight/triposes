@@ -52,12 +52,20 @@ namespace Language
     | _ :: _ => (T.𝔼 π).map (eval _ φ)
 
   /- Syntax for (some) connectives -/
-  infixr:10 "⊑" => Formula.impl
-  infixr:80 "@" => Formula.app
-  infixl:20 "⊓" => Formula.conj
-  infixl:15 "⊔" => Formula.disj
+  -- infixr:10 "⊑" => Formula.impl
+  -- infixr:80 "@" => Formula.app
+  -- infixl:20 "⊓" => Formula.conj
+  -- infixl:15 "⊔" => Formula.disj
   /- Basic "evaluates to true" syntax -/
-  notation:30 As " ⊨ " f => ⊤ = Formula.eval As f
+  -- notation:30 As " ⊨ " f => ⊤ = Formula.eval As f
+
+  declare_syntax_cat heyt_expr
+  syntax "⊤" : heyt_expr
+  syntax "⊥" : heyt_expr
+  syntax:50 heyt_expr "⊓" heyt_expr : heyt_expr
+  syntax:40 heyt_expr "⊔" heyt_expr : heyt_expr
+  syntax:30 heyt_expr "⇒" heyt_expr : heyt_expr
+  syntax:70 term "@" term : heyt_expr
 
   open Lean Elab Command Term Meta
 
