@@ -67,16 +67,16 @@ section ProjDSL
 
   declare_syntax_cat fpentry
   syntax ident ":" term : fpentry
-  -- macro_rules
-  -- | `(fpentry| $x:ident : $A:term) => `(($(Lean.quote x.getId), $A))
 
   declare_syntax_cat fpcontext
   syntax fpentry,* : fpcontext
 
+  syntax "[fpcontext|" fpcontext "]" : term
+
   macro_rules
-  | `(fpcontext| $[$key:ident : $value:term],* ) =>
+  | `([fpcontext| $[$key:ident : $value:term],* ]) =>
     let key := key.map (fun x => Lean.quote x.getId)
-    `([$[($key, $value)],*].toAssocList)
+    `([$[($key, $value)],*].toAssocList')
 
   declare_syntax_cat fpterm
   syntax ident : fpterm
@@ -84,18 +84,19 @@ section ProjDSL
   syntax "⟨" fpterm "," fpterm "⟩" : fpterm
   syntax "fst" fpterm : fpterm
   syntax "snd" fpterm : fpterm
-  syntax term fpterm : fpterm
+  syntax "(" fpterm ")" : fpterm
+  syntax "[" term "]" fpterm : fpterm
 
-  syntax term "⊢ₑ" fpterm : term
-
-  #check Lean.Syntax.getId
+  syntax fpcontext "⊢ₑ" fpterm : term
 
   macro_rules
-  | `($Γ ⊢ₑ $x:ident) => `(proj $Γ $(Lean.quote x.getId))
-  | `($Γ ⊢ₑ ⟨ $a:fpterm, $b:fpterm ⟩) => `(fp.lift ($Γ ⊢ₑ $a) ($Γ ⊢ₑ $b))
-  | `($Γ ⊢ₑ fst $a:fpterm) => `(($Γ ⊢ₑ $a) ≫ fp.fst _ _)
-  | `($Γ ⊢ₑ snd $a:fpterm) => `(($Γ ⊢ₑ $a) ≫ fp.snd _ _)
-  | `($Γ ⊢ₑ $f:term $a:fpterm) => `(($Γ ⊢ₑ $a) ≫ $f)
+  | `($Γ:fpcontext ⊢ₑ $x:ident) => `(proj [fpcontext|$Γ] $(Lean.quote x.getId))
+  | `($Γ:fpcontext ⊢ₑ tt) => `(fp.toUnit (listProd [fpcontext|$Γ]))
+  | `($Γ:fpcontext ⊢ₑ ⟨ $a:fpterm, $b:fpterm ⟩) => `(fp.lift ($Γ:fpcontext ⊢ₑ $a) ($Γ:fpcontext ⊢ₑ $b))
+  | `($Γ:fpcontext ⊢ₑ fst $a:fpterm) => `(($Γ:fpcontext ⊢ₑ $a) ≫ fp.fst _ _)
+  | `($Γ:fpcontext ⊢ₑ snd $a:fpterm) => `(($Γ:fpcontext ⊢ₑ $a) ≫ fp.snd _ _)
+  | `($Γ:fpcontext ⊢ₑ [$f:term] $a:fpterm) => `(($Γ:fpcontext ⊢ₑ $a) ≫ $f)
+  | `($Γ:fpcontext ⊢ₑ ($a:fpterm)) => `($Γ:fpcontext ⊢ₑ $a)
 
   /-- Evaluate an expression to the corresponding morphism -/
   @[reducible]
@@ -107,17 +108,33 @@ section ProjDSL
     | .snd a => a.eval ≫ fp.snd _ _
     | .app f a => a.eval ≫ f
 
-  namespace Proj
-    @[reducible]
-    def id {As : Lean.AssocList Lean.Name 𝒞} : listProd As ⟶ listProd As := 𝟙 (listProd As)
 
-    @[reducible]
-    def swap {X Y : 𝒞} : X ⊗ Y ⟶ Y ⊗ X :=
-      .cons `x X (.cons `y Y .nil) ⊢ₑ ⟨ y, x ⟩
+  /-- the twist morphism -/
+  example {X Y : 𝒞} : X ⊗ Y ⟶ Y ⊗ X :=
+    x : X, y : Y ⊢ₑ ⟨ y, x ⟩
 
-    @[reducible]
-    def diag {X : 𝒞} : X ⟶ X ⊗ X :=
-      .cons `x X .nil ⊢ₑ ⟨ x, x ⟩
-  end Proj
+  /-- the diagonal -/
+  example {X : 𝒞} : X ⟶ X ⊗ X :=
+  x : X ⊢ₑ ⟨ x, x ⟩
+
+  /-- identity on the terminal -/
+  example : 𝟙_ 𝒞 ⟶ 𝟙_ 𝒞 := ⊢ₑ tt
+
+  /-- composition of morphisms -/
+  example {X Y Z: 𝒞} (g : Y ⟶ Z) (f : X ⟶ Y): X ⟶ Z :=
+    x : X ⊢ₑ [g] [f] x
+
+  /-- right associator -/
+  def assocRight (X Y Z : 𝒞) : (X ⊗ Y) ⊗ Z ⟶ X ⊗ (Y ⊗ Z) :=
+  p : (X ⊗ Y) ⊗ Z ⊢ₑ ⟨fst (fst p), ⟨snd (fst p), snd p⟩⟩
+
+  /-- left associator -/
+  def assocLeft (X Y Z : 𝒞) : X ⊗ (Y ⊗ Z) ⟶ (X ⊗ Y) ⊗ Z :=
+  p : X ⊗ (Y ⊗ Z) ⊢ₑ ⟨⟨fst p, fst (snd p)⟩, snd (snd p)⟩
+
+  /-- the associators are inverses -/
+  example {X Y Z : 𝒞} : assocLeft X Y Z ≫ assocRight X Y Z = 𝟙 _ := by
+   simp [assocLeft, assocRight, proj, List.toAssocList']
+   aesop_cat
 
 end ProjDSL
