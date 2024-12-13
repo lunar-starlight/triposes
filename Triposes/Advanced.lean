@@ -53,9 +53,6 @@ section ProjDSL
     | app : ∀ {B C : 𝒞}, (B ⟶ C) → Expr As B → Expr As C
 
   @[inherit_doc]
-  infix:90 "@" => Expr.app
-
-  @[inherit_doc]
   notation:100 "⟨" a "," b "⟩" => Expr.pair a b
 
   /-- Ordered triple -/
@@ -84,11 +81,6 @@ section ProjDSL
     @[reducible]
     def diag {X : 𝒞} : X ⟶ X ⊗ X :=
       [X] ⊢ₑ ⟨ .var 0, .var 0 ⟩
-
-
-    example (X Y Z : 𝒞) (f : X⊗Y ⟶ X⊗Y): X ⊗ (Y ⊗ Z) ⟶ (X ⊗ Y) ⊗ Z :=
-      [X, Y, Z] ⊢ₑ ⟨ f @ ⟨ .var 0, .var 1 ⟩ , .var 2 ⟩
-
   end Proj
 
 end ProjDSL
@@ -126,50 +118,50 @@ section Tripos
 
     BeckChevalley : ∀ {X Y Z W : 𝒞} (f : X ⟶ Y) (g : X ⟶ Z) (h : Y ⟶ W) (k : Z ⟶ W), IsPullback f g h k → (𝔸 f).map ∘ P₁ g = P₁ h ∘ (𝔸 k).map
 
-  def π {X Y : 𝒞} : X ⊗ Y ⟶ Y := fp.snd _ _
-  -- def 𝔸π [T : Tripos P] {X Y : 𝒞} : HasForall (X := X ⊗ Y) (Y := Y) (P := P) π := T.𝔸 π
+  section Language
+    def π {X Y : 𝒞} : X ⊗ Y ⟶ Y := fp.snd _ _
 
-  /-- `Formula As` denotes a predicate in `P (listProd As)`.
-      It should be easy to add other connectives and quantifiers. -/
-  inductive Formula : List 𝒞 → Type _ where
-    /-- Application of a predicate to an expression -/
-  | app : ∀ {B As}, P₀ (P := P) B → Expr As B → Formula As
-    /-- The true predicate -/
-  | tru : ∀ {As}, Formula As
-    /-- The false predicate -/
-  | fal : ∀ {As}, Formula As
-    /-- Conjunction -/
-  | conj : ∀ {As}, Formula As → Formula As → Formula As
-    /-- Disjunction -/
-  | disj : ∀ {As}, Formula As → Formula As → Formula As
-    /-- Implication -/
-  | impl : ∀ {As}, Formula As → Formula As → Formula As
-    /-- Universal quantifier, we always quantify on `var .0` -/
-  | all : ∀ (A : 𝒞) {As : List 𝒞}, Formula (A :: As) → Formula As
-    /-- Existential quantifier, we always quantify on `var .0` -/
-  | any : ∀ (A : 𝒞) {As : List 𝒞}, Formula (A :: As) → Formula As
+    /-- `Formula As` denotes a predicate in `P (listProd As)`.
+        It should be easy to add other connectives and quantifiers. -/
+    inductive Formula : List 𝒞 → Type _ where
+      /-- Application of a predicate to an expression -/
+    | app : ∀ {B As}, P₀ (P := P) B → Expr As B → Formula As
+      /-- The true predicate -/
+    | tru : ∀ {As}, Formula As
+      /-- The false predicate -/
+    | fal : ∀ {As}, Formula As
+      /-- Conjunction -/
+    | conj : ∀ {As}, Formula As → Formula As → Formula As
+      /-- Disjunction -/
+    | disj : ∀ {As}, Formula As → Formula As → Formula As
+      /-- Implication -/
+    | impl : ∀ {As}, Formula As → Formula As → Formula As
+      /-- Universal quantifier, we always quantify on `var .0` -/
+    | all : ∀ (A : 𝒞) {As : List 𝒞}, Formula (A :: As) → Formula As
+      /-- Existential quantifier, we always quantify on `var .0` -/
+    | any : ∀ (A : 𝒞) {As : List 𝒞}, Formula (A :: As) → Formula As
 
-  def Formula.eval (As : List 𝒞) [T : Tripos P] : Formula (P := P) As → P₀ (P := P) (listProd As)
-  | .app ρ e => P₁ (As ⊢ₑ e) ρ
-  | .tru => ⊤
-  | .fal => ⊥
-  | .conj φ ψ => eval As φ ⊓ eval As ψ
-  | .disj φ ψ => eval As φ ⊔ eval As ψ
-  | .impl φ ψ => eval As φ ⇨ eval As ψ
-  | .all _ φ =>
-    /- This case is somewhat complicated by the fact that `listProd [A]` is special. -/
-    match As with
-    | [] => (T.𝔸 π).map (P₁ (fp.fst _ _) (eval _ φ))
-    | _ :: _ => (T.𝔸 π).map (eval _ φ)
-  | .any _ φ =>
-    match As with
-    | [] => (T.𝔼 π).map (P₁ (fp.fst _ _) (eval _ φ))
-    | _ :: _ => (T.𝔼 π).map (eval _ φ)
+    def Formula.eval (As : List 𝒞) [T : Tripos P] : Formula (P := P) As → P₀ (P := P) (listProd As)
+    | .app ρ e => P₁ (As ⊢ₑ e) ρ
+    | .tru => ⊤
+    | .fal => ⊥
+    | .conj φ ψ => eval As φ ⊓ eval As ψ
+    | .disj φ ψ => eval As φ ⊔ eval As ψ
+    | .impl φ ψ => eval As φ ⇨ eval As ψ
+    | .all _ φ =>
+      /- This case is somewhat complicated by the fact that `listProd [A]` is special. -/
+      match As with
+      | [] => (T.𝔸 π).map (P₁ (fp.fst _ _) (eval _ φ))
+      | _ :: _ => (T.𝔸 π).map (eval _ φ)
+    | .any _ φ =>
+      match As with
+      | [] => (T.𝔼 π).map (P₁ (fp.fst _ _) (eval _ φ))
+      | _ :: _ => (T.𝔼 π).map (eval _ φ)
 
-  notation:30 As " ⊢ " f => ⊤ = Formula.eval As f
+    notation:30 As " ⊢ " f => ⊤ = Formula.eval As f
 
-  section Syntax
     open Lean Elab Command Term Meta
+
     syntax (name := letVars) "let_vars " ident,* " in " term : term
     syntax (name := letVarsI) "let_vars_i " term " | " ident,* " in " term : term
 
@@ -180,11 +172,8 @@ section Tripos
         let stx ← `(let $x := Expr.var $n; $body)
         elabTerm stx type?
       | `(let_vars_i $n | $x,$xs,* in $body) => do
-        -- let nExpr : Expr ← elabTermEnsuringType n (mkConst `Nat)
-        -- let nlit := nExpr.natLit!
         let stx ← `(let $x := Expr.var $n; let_vars_i ($n+1) | $xs,* in $body)
         elabTerm stx type?
-      | `(let_vars_i $_ | in $body) => elabTerm body type?
       | _ => throwUnsupportedSyntax
 
     @[term_elab letVars] def elabLetVars : TermElab := λ stx type? =>
@@ -199,14 +188,11 @@ section Tripos
     declare_syntax_cat context
     syntax "[" typing_judgement,* "]" : context
     syntax (name := tripos) context " ⊨ " term : term
-    -- macro_rules
-    -- | `([ $[$x:ident : $X:term],* ] ⊨ $f:term) =>
-    --   `(let_vars $x,* in let As := [$X,*]; let f := $f; ⊤ = Formula.eval As f)
 
     @[term_elab tripos] def elabTripos : TermElab := λ stx type? =>
       match stx with
       | `([ $[$x:ident : $X:term],* ] ⊨ $f:term) => do
-        let stx ← `(let As := [$X,*]; let_vars $x,* in (⊤ = Formula.eval As $f))
+        let stx ← `(let As := [$X,*]; let_vars $x,* in (As ⊢ $f))
         elabTerm stx type?
       | _ => throwUnsupportedSyntax
 
@@ -215,51 +201,23 @@ section Tripos
     infixl:20 "⊓" => Formula.conj
     infixl:15 "⊔" => Formula.disj
 
-    -- variable {X Y : 𝒞} [T : Tripos P]
-    -- #check [a : X, b : X] ⊨ ((⟦a =[rel] b⟧) ⊑ (⟦b =[rel] a⟧))
-  end Syntax
+  end Language
+  namespace PERdef
+  local notation:70 "⟦" x "=[" ρ "]" y "⟧" => (Formula.app ρ (⟨x, y⟩)) -- ⟦ =[] ⟧
 
-  -- notation:70 "a" => Expr.var 0
-  -- notation:70 "b" => Expr.var 1
-  -- notation:70 "c" => Expr.var 2
-  -- def a {As : List 𝒞} {A : 𝒞} : Expr (A :: As) A := Expr.var 0
-  -- def b {As : List 𝒞} {A B : 𝒞} : Expr (A :: B :: As) B := Expr.var 1
-  -- def c {As : List 𝒞} {A B C : 𝒞} : Expr (A :: B :: C :: As) C := Expr.var 2
-
-  notation:70 "⟦" x "=[" ρ "]" y "⟧" => (ρ @ ⟨x, y⟩) -- ⟦ =[] ⟧
-  notation:5505555 "⟦" map "(" x ") =" y "⟧" => (map @ ⟨x, y⟩) -- ⟦() = ⟧
-
-  -- #check
-
-  class PER [T : Tripos P] (X : 𝒞) [fp : ChosenFiniteProducts 𝒞] where
+  class PER [T : Tripos P] (X : 𝒞) where
     rel : P₀ (P := P) (X ⊗ X)
-    -- sym : [a : X, b : X] ⊨ Formula.app rel (⟨a, b⟩)
     sym : [a : X, b : X] ⊨ ⟦a =[rel] b⟧ ⊑ ⟦b =[rel] a⟧
-    -- sym : [X, X] ⊢ ⟦a =[rel] b⟧ ⊑ ⟦b =[rel] a⟧
     trans : [a : X, b : X, c : X] ⊨ ⟦a =[rel] b⟧ ⊓ ⟦b =[rel] c⟧ ⊑ ⟦a =[rel] c⟧
-    -- trans : [X, X, X] ⊢ ⟦a =[rel] b⟧ ⊓ ⟦b =[rel] c⟧ ⊑ ⟦a =[rel] c⟧
+  end PERdef
+  open PERdef
 
-  -- def x {As : List 𝒞} {A : 𝒞} : Expr (A :: As) A := Expr.var 0
-  -- def x' {As : List 𝒞} {A B : 𝒞} : Expr (A :: B :: As) B := Expr.var 1
-  -- def y {As : List 𝒞} {A B : 𝒞} : Expr (A :: B :: As) B := Expr.var 1
-  -- def y' {As : List 𝒞} {A B C : 𝒞} : Expr (A :: B :: C :: As) C := Expr.var 2
-  -- variable [T : Tripos P] {X : 𝒞} (ρX : PER (T := T) X)
+  notation:70 "⟦" x "=[" ρ "]" y "⟧" => (Formula.app (PER.rel (X := ρ)) (⟨x, y⟩)) -- ⟦ =[] ⟧
+  notation:1025 "⟦" map "(" x ") =" y "⟧" => (Formula.app map (⟨x, y⟩)) -- ⟦() = ⟧
 
-  -- #reduce [X, X, X] ⊢ ⟦x =[ρX.rel] x'⟧ ⊓ ⟦x =[ρX.rel] y'⟧
-
-  -- class PERHom [T : Tripos P] {X Y : 𝒞} (ρX : PER (T := T) X) (ρY : PER (T := T) Y) where
-  --   map : P₀ (P := P) (X ⊗ Y)
-  --   congrDom : [X, X, Y] ⊢ ⟦x =[ρX.rel] x'⟧ ⊓ ⟦map[x'] = y'⟧ ⊑ ⟦map[x] = y'⟧
-  --   congrCod : [X, Y, Y] ⊢ ⟦map[x] = y⟧ ⊓ ⟦y =[ρY.rel] y'⟧ ⊑ ⟦map[x] = y'⟧
-  --   unique   : [X, Y, Y] ⊢ ⟦map[x] = y⟧ ⊓ ⟦map[x] = y'⟧ ⊑ ⟦y =[ρY.rel] y'⟧
-  --   total    : [X]       ⊢ ⟦x =[ρX.rel] x⟧ ⊑ .any Y ⟦map[b] = a⟧ -- this is [x = x] ⊑ ∃_y [fx = y], so b = x and a = y
-  class PERHom [T : Tripos P] {X Y : 𝒞} (ρX : PER (T := T) X) (ρY : PER (T := T) Y) where
+  class PERHom [T : Tripos P] (X Y : 𝒞) [ρX : PER (T := T) X] [ρY : PER (T := T) Y] where
     map : P₀ (P := P) (X ⊗ Y)
-    -- congrDom : [X, X, Y] ⊢ ⟦x =[ρX.rel] x'⟧ ⊓ ⟦map(x') = y'⟧ ⊑ ⟦map(x) = y'⟧
-    -- congrCod : [X, Y, Y] ⊢ ⟦map(x) = y⟧ ⊓ ⟦y =[ρY.rel] y'⟧ ⊑ ⟦map(x) = y'⟧
-    -- unique   : [X, Y, Y] ⊢ ⟦map(x) = y⟧ ⊓ ⟦map(x) = y'⟧ ⊑ ⟦y =[ρY.rel] y'⟧
-    -- total    : [X]       ⊢ ⟦x =[ρX.rel] x⟧ ⊑ .any Y ⟦map(b) = a⟧ -- this is [x = x] ⊑ ∃_y [fx = y], so b = x and a = y
-    congrDom : [x : X, x' : X, y : Y] ⊨ ⟦x =[ρX.rel] x'⟧ ⊓ ⟦map(x') = y⟧ ⊑ ⟦map(x) = y⟧
-    congrCod : [x : X, y : Y, y' : Y] ⊨ ⟦map(x) = y⟧ ⊓ ⟦y =[ρY.rel] y'⟧ ⊑ ⟦map(x) = y'⟧
-    unique   : [x : X, y : Y, y' : Y] ⊨ ⟦map(x) = y⟧ ⊓ ⟦map(x) = y'⟧ ⊑ ⟦y =[ρY.rel] y'⟧
-    total    : [x : X]                ⊨ ⟦x =[ρX.rel] x⟧ ⊑ .any Y ⟦map(.var 1) = .var 0⟧ -- this is [x = x] ⊑ ∃_y [fx = y]
+    congrDom : [x : X, x' : X, y : Y] ⊨ ⟦x =[X] x'⟧ ⊓ ⟦map(x') = y⟧ ⊑ ⟦map(x) = y⟧
+    congrCod : [x : X, y : Y, y' : Y] ⊨ ⟦map(x) = y⟧ ⊓ ⟦y =[Y] y'⟧ ⊑ ⟦map(x) = y'⟧
+    unique   : [x : X, y : Y, y' : Y] ⊨ ⟦map(x) = y⟧ ⊓ ⟦map(x) = y'⟧ ⊑ ⟦y =[Y] y'⟧
+    total    : [x : X]                ⊨ ⟦x =[X] x⟧ ⊑ .any Y ⟦map(.var 1) = .var 0⟧ -- this is [x = x] ⊑ ∃_y [fx = y]
