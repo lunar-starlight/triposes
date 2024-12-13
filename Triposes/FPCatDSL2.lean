@@ -100,7 +100,7 @@ section Examples
 
   /-- the diagonal -/
   example {X : 𝒞} : X ⟶ X ⊗ X :=
-  x : X ⊢ₑ ⟨ x, x ⟩
+    x : X ⊢ₑ ⟨ x, x ⟩
 
   /-- the first projection is the first projection -/
   example {X Y : 𝒞} : (p : X ⊗ Y ⊢ₑ fst p) = (p : X ⊗ Y ⊢ₑ $(fp.fst X Y) p) := by simp
