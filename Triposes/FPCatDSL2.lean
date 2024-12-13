@@ -67,12 +67,16 @@ section ProjDSL
 
   declare_syntax_cat fpentry
   syntax ident ":" term : fpentry
+  -- macro_rules
+  -- | `(fpentry| $x:ident : $A:term) => `(($(Lean.quote x.getId), $A))
 
-  syntax "[<" fpentry,* ">]" : term
+  declare_syntax_cat fpcontext
+  syntax fpentry,* : fpcontext
 
   macro_rules
-  | `( [< >] ) => `(Lean.AssocList.nil)
-  | `( [< $x:ident : $A:term , $Γ,* >] ) => `(Lean.AssocList.cons $(Lean.quote x.getId) $A [< $Γ,* >])
+  | `(fpcontext| $[$key:ident : $value:term],* ) =>
+    let key := key.map (fun x => Lean.quote x.getId)
+    `([$[($key, $value)],*].toAssocList)
 
   declare_syntax_cat fpterm
   syntax ident : fpterm
