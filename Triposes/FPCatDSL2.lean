@@ -85,7 +85,7 @@ end ProjDSL
 
 section Examples
 
-  /- We work over a cartesian closed category -/
+  /- We work over a a category with (chosen) finite products. -/
   universe u v
   variable {𝒞 : Type u} [Category.{v, u} 𝒞] [fp : ChosenFiniteProducts 𝒞]
 
