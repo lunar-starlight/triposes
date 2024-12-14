@@ -20,7 +20,7 @@ section ProjDSL
   /-- a variable -/
   syntax ident : fpterm
 
-  /-- the unique element of the terminal object -/
+  /-- the unique (generalized) element of the terminal object -/
   syntax "tt" : fpterm
 
   /-- ordered pair -/
@@ -41,7 +41,7 @@ section ProjDSL
   syntax fpcontext "⊢ₑ" fpterm : term
 
   /-- Convert a context `x₁ : X₁, …, xₙ : Xₙ` to the term `X₁ ⊗ ⋯ ⊗ Xₙ`,
-      making sure that the empty context is the terminal object `X ⊗ 𝟙_ _` and
+      making sure that the empty context is the terminal object `𝟙_ _` and
       that `x : X` is just `X`, rather than `X ⊗ 𝟙_ 𝒞`.
   -/
   partial def prodify : TSyntax `fpcontext → MacroM Term
@@ -69,9 +69,13 @@ section ProjDSL
       `(ChosenFiniteProducts.snd $A _ ≫ $p)
   | _ => Macro.throwError "invalid context syntax"
 
+  /-- Conversion of the internal syntax to a (term representing) morphism -/
   macro_rules
   | `($Γ:fpcontext ⊢ₑ $x:ident) => project x.getId Γ
-  | `($Γ:fpcontext ⊢ₑ tt) => do { let A ← prodify Γ ; `(ChosenFiniteProducts.toUnit $A) }
+  | `($Γ:fpcontext ⊢ₑ tt) =>
+    /- We could skip using `prodify` here and just return `(ChosenFiniteProducts.toUnit _)`, but the
+       result is a bit too polymorphic, as `⊢ₑ tt` would denote *any* morphihm `toUnit X`. -/
+    do { let A ← prodify Γ ; `(ChosenFiniteProducts.toUnit $A) }
   | `($Γ:fpcontext ⊢ₑ ⟨ $a:fpterm, $b:fpterm ⟩) => `(ChosenFiniteProducts.lift ($Γ:fpcontext ⊢ₑ $a) ($Γ:fpcontext ⊢ₑ $b))
   | `($Γ:fpcontext ⊢ₑ fst $a:fpterm) => `(($Γ:fpcontext ⊢ₑ $a) ≫ ChosenFiniteProducts.fst _ _)
   | `($Γ:fpcontext ⊢ₑ snd $a:fpterm) => `(($Γ:fpcontext ⊢ₑ $a) ≫ ChosenFiniteProducts.snd _ _)
@@ -100,6 +104,9 @@ section Examples
 
   /-- the first projection is the first projection -/
   example {X Y : 𝒞} : (p : X ⊗ Y ⊢ₑ fst p) = (p : X ⊗ Y ⊢ₑ $(fp.fst X Y) p) := by simp
+
+  /-- A silly example showing that we can embed the internal language inside `$(⋯)`. Please don't do this. -/
+  example {X : 𝒞} : X ⟶ X := x : X ⊢ₑ $(y : X ⊢ₑ y) x
 
   /-- identity on the terminal -/
   example : 𝟙_ 𝒞 ⟶ 𝟙_ 𝒞 := ⊢ₑ tt
