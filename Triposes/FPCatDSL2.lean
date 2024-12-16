@@ -7,12 +7,12 @@ section ProjDSL
   open Lean
 
   /-- A context entry -/
-  declare_syntax_cat fpentry
-  syntax ident ":" term : fpentry
+  declare_syntax_cat typing_judgement
+  syntax ident ":" term : typing_judgement
 
   /-- A context takes the form `x₁ : X₁, …, xₙ : Xₙ` where `xᵢ` are identifiers and `Xᵢ` objects of a category. -/
   declare_syntax_cat fpcontext
-  syntax fpentry,* : fpcontext
+  syntax typing_judgement,* : fpcontext
 
   /-- The syntax of terms -/
   declare_syntax_cat fpterm
@@ -47,9 +47,9 @@ section ProjDSL
   partial def prodify : TSyntax `fpcontext → MacroM Term
   | `(fpcontext| ) => `(𝟙_ _)
   | `(fpcontext| $_:ident : $A:term) => `($A)
-  | `(fpcontext| $_:ident : $A:term, $Γ:fpentry,*) =>
+  | `(fpcontext| $_:ident : $A:term, $Γ:typing_judgement,*) =>
     do
-      let Γ ← `(fpcontext| $Γ:fpentry,*)
+      let Γ ← `(fpcontext| $Γ:typing_judgement,*)
       let As ← prodify Γ
       `($A ⊗ $As)
   | _ => Macro.throwError "invalid context syntax"
@@ -60,11 +60,11 @@ section ProjDSL
   | `(fpcontext| $y:ident : $A:term) =>
       -- the only thing that can be projected is `x` by the identity morphism
       if x = y.getId then `(𝟙 $A) else Macro.throwError s!"unkown identifier {x}"
-  | `(fpcontext| $y:ident : $A:term, $Γ:fpentry,*) =>
+  | `(fpcontext| $y:ident : $A:term, $Γ:typing_judgement,*) =>
     if x = y.getId then
       `(ChosenFiniteProducts.fst $A _)
     else do
-      let Γ ← `(fpcontext| $Γ:fpentry,*)
+      let Γ ← `(fpcontext| $Γ:typing_judgement,*)
       let p ← project x Γ
       `(ChosenFiniteProducts.snd $A _ ≫ $p)
   | _ => Macro.throwError "invalid context syntax"

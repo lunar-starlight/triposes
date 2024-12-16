@@ -7,7 +7,7 @@ import Mathlib.CategoryTheory.Closed.Cartesian
 import Mathlib.CategoryTheory.Types
 import Mathlib.Order.Category.HeytAlg
 
-import Triposes.FPCatDSL
+import Triposes.FPCatDSL2
 
 section Tripos
 
