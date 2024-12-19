@@ -6,11 +6,12 @@ open MonoidalCategory
 
 namespace Language
 
-  universe u v
-  variable {𝒞 : Type u} [Category.{v, u} 𝒞] [fp : ChosenFiniteProducts 𝒞] [ccc : CartesianClosed 𝒞]
+  -- universe u v
+  -- variable {𝒞 : Type u} [Category.{v, u} 𝒞] [fp : ChosenFiniteProducts 𝒞] [ccc : CartesianClosed 𝒞]
 
   /- Fix a tripos -/
-  variable {P : 𝒞ᵒᵖ ⥤ HeytAlg} [T : Tripos P]
+  -- variable {P : 𝒞ᵒᵖ ⥤ HeytAlg} [T : Tripos P]
+  open Lean
 
   -- def π {X Y : 𝒞} : X ⊗ Y ⟶ Y := fp.snd _ _
 
@@ -51,33 +52,52 @@ namespace Language
   --   | [] => (T.𝔼 π).map (P₁ (fp.fst _ _) (eval _ φ))
   --   | _ :: _ => (T.𝔼 π).map (eval _ φ)
 
+  declare_syntax_cat fpformula
+  syntax "⊤" : fpformula
+  syntax "⊥" : fpformula
+  syntax:50 fpformula "⊓" fpformula : fpformula
+  syntax:40 fpformula "⊔" fpformula : fpformula
+  syntax:30 fpformula "⇒" fpformula : fpformula
+  syntax:60 "∀" typing_judgement "," fpformula : fpformula
+  syntax:60 "∃" typing_judgement "," fpformula : fpformula
+  syntax:100 "(" fpformula ")" : fpformula
+  syntax:1025 "⟪" term "|" fpterm "⟫" : fpformula
 
-  declare_syntax_cat heyt_expr
-  syntax "⊤" : heyt_expr
-  syntax "⊥" : heyt_expr
-  syntax:50 heyt_expr "⊓" heyt_expr : heyt_expr
-  syntax:40 heyt_expr "⊔" heyt_expr : heyt_expr
-  syntax:30 heyt_expr "⇒" heyt_expr : heyt_expr
-  syntax:60 "∀" typing_judgement "," heyt_expr : heyt_expr
-  syntax:60 "∃" typing_judgement "," heyt_expr : heyt_expr
-  syntax "(" heyt_expr ")" : heyt_expr
-  syntax:1025 "[" term "]" fpterm : heyt_expr
+  syntax:10 fpcontext "⊢ₕ" fpformula : term
+  syntax:10 fpcontext "⊢" fpformula : term
 
-  syntax:10 fpcontext "⊢" heyt_expr : term
+  partial def unfold : TSyntax `fpcontext → MacroM (Array (TSyntax `typing_judgement))
+  | `(fpcontext| ) => pure Array.empty
+  | `(fpcontext| $x:ident : $A:term) =>
+    do
+      let j ← `(typing_judgement| $x:ident : $A)
+      return Array.mk [j]
+  | `(fpcontext| $x:ident : $A:term, $Γ:typing_judgement,*) =>
+    do
+      let Γ ← `(fpcontext| $Γ:typing_judgement,*)
+      let As ← unfold Γ
+      let j ← `(typing_judgement| $x:ident : $A)
+      return Array.mk (j :: As.toList)
+  | _ => Macro.throwError "invalid context syntax"
+
   macro_rules
-  | `([fpcontext| $[$key:ident : $value:term],* ]) =>
-    let key := key.map (fun x => Lean.quote x.getId)
-    `([$[($key, $value)],*].toAssocList')
-
-  macro_rules
-  | `($Γ:fpcontext ⊢ [$f:term] $t:fpterm) => `(P₁ ($Γ:fpcontext ⊢ₑ $t) $f)
-  | `($Γ:fpcontext ⊢ $s:heyt_expr ⊓ $t:heyt_expr) => `(($Γ:fpcontext ⊢ $s) ⊓ ($Γ:fpcontext ⊢ $t))
-  | `($Γ:fpcontext ⊢ $s:heyt_expr ⊔ $t:heyt_expr) => `(($Γ:fpcontext ⊢ $s) ⊔ ($Γ:fpcontext ⊢ $t))
-  | `($Γ:fpcontext ⊢ $s:heyt_expr ⇒ $t:heyt_expr) => `(($Γ:fpcontext ⊢ $s) ⇨ ($Γ:fpcontext ⊢ $t))
-  | `($_:fpcontext ⊢ ⊤) => `(⊤)
-  | `($_:fpcontext ⊢ ⊥) => `(⊥)
-  | `($[$jdgs],* ⊢ ∀ $y:ident : $Y:term , $t:heyt_expr) => `($y:ident : $Y:term , $jdgs,* ⊢ $t)
-  | `($[$jdgs],* ⊢ ∃ $y:ident : $Y:term , $t:heyt_expr) => `($y:ident : $Y:term , $jdgs,* ⊢ $t)
-  | `($Γ:fpcontext ⊢ ($t:heyt_expr)) => `($Γ:fpcontext ⊢ $t)
+  | `($Γ:fpcontext ⊢ₕ ⟪ $f:term | $t:fpterm ⟫) => do
+    let t ← `($Γ:fpcontext ⊢ₑ $t)
+    `(P₁ $t $f)
+  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⊓ $t:fpformula) => do let s ← `($Γ:fpcontext ⊢ₕ $s); let t ← `($Γ:fpcontext ⊢ₕ $t); `($s ⊓ $t)
+  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⊔ $t:fpformula) => do let s ← `($Γ:fpcontext ⊢ₕ $s); let t ← `($Γ:fpcontext ⊢ₕ $t); `($s ⊔ $t)
+  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⇒ $t:fpformula) => do let s ← `($Γ:fpcontext ⊢ₕ $s); let t ← `($Γ:fpcontext ⊢ₕ $t); `($s ⇨ $t)
+  | `($_:fpcontext ⊢ₕ ⊤) => `(⊤)
+  | `($_:fpcontext ⊢ₕ ⊥) => `(⊥)
+  | `($Γ:fpcontext ⊢ₕ ∀ $y:ident : $Y:term , $t:fpformula) => do
+    let jdgs ← unfold Γ
+    let t ← `($y:ident : $Y:term , $jdgs,* ⊢ₕ $t)
+    `((Tripos.𝔸 (ChosenFiniteProducts.snd _ _)).map $t)
+  | `($Γ:fpcontext ⊢ₕ ∃ $y:ident : $Y:term , $t:fpformula) => do
+    let jdgs ← unfold Γ
+    let t ← `($y:ident : $Y:term , $jdgs,* ⊢ₕ $t)
+    `((Tripos.𝔼 (ChosenFiniteProducts.snd _ _)).map $t)
+  | `($Γ:fpcontext ⊢ₕ ($t:fpformula)) => `($Γ:fpcontext ⊢ₕ $t)
+  | `($Γ:fpcontext ⊢ $t:fpformula) => `(⊤ = ($Γ:fpcontext ⊢ₕ $t))
 
 end Language
