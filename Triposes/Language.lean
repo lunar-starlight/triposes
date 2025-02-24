@@ -106,14 +106,12 @@ namespace Language
     `($s ⇔ $t)
   | `($_:fpcontext ⊢ₕ ⊤) => `(⊤)
   | `($_:fpcontext ⊢ₕ ⊥) => `(⊥)
-  | `($Γ:fpcontext ⊢ₕ ∀ $y:ident : $Y:term , $t:fpformula) => do
-    let jdgs ← unfold Γ
-    let t ← `($y:ident : $Y:term , $jdgs,* ⊢ₕ $t)
-    `((Tripos.𝔸 (ChosenFiniteProducts.snd _ _)).map $t)
-  | `($Γ:fpcontext ⊢ₕ ∃ $y:ident : $Y:term , $t:fpformula) => do
-    let jdgs ← unfold Γ
-    let t ← `($y:ident : $Y:term , $jdgs,* ⊢ₕ $t)
-    `((Tripos.𝔼 (ChosenFiniteProducts.snd _ _)).map $t)
+  | `($jdgs:typing_judgement,* ⊢ₕ ∀ $y:ident : $Y:term , $t:fpformula) => do
+    let t ← `($jdgs:typing_judgement,* , $y:ident : $Y:term ⊢ₕ $t)
+    `((Tripos.𝔸 (ChosenFiniteProducts.fst _ _)).map $t)
+  | `($jdgs:typing_judgement,* ⊢ₕ ∃ $y:ident : $Y:term , $t:fpformula) => do
+    let t ← `($jdgs:typing_judgement,* , $y:ident : $Y:term  ⊢ₕ $t)
+    `((Tripos.𝔼 (ChosenFiniteProducts.fst _ _)).map $t)
   | `($Γ:fpcontext ⊢ₕ ($t:fpformula)) => `($Γ:fpcontext ⊢ₕ $t)
   | `($Γ:fpcontext ⊢ $t:fpformula) => `(($Γ:fpcontext ⊢ₕ $t) ≥ ⊤)
 

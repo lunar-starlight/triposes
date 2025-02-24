@@ -91,204 +91,161 @@ section PERLemata
   open Tripos.TermLE
 
   omit fp ccc in lemma isTop_iff_forall_isTop (f : X ⟶ Y) {t : P₀ X} : isTop t ↔ isTop (T.𝔸 f t) := by
-  -- omit ccc in lemma isTop_iff_forall_isTop {t : P₀ (P := P) (X ⊗ Y)} : (y : Y, x : X ⊢ ⟪t | ⟨x, y⟩⟫) ↔ (x : X ⊢ ∀ y : Y, ⟪t | ⟨x, y⟩⟫) := by
     constructor
     · simp
       rintro rfl
-      apply map_top
+      apply T.forall_top_eq_top'
     · apply isTop_le_isTop
       exact forall_le (𝔸 := T.𝔸 f)
-      -- rintro 𝔸ttop
-      -- rw [eq_top_iff] at 𝔸ttop
-      -- apply RightAdjoint.adjFrom at 𝔸ttop
-      -- simp at 𝔸ttop
-      -- assumption
+
+  open Lean PrettyPrinter Delaborator SubExpr
+
+  @[app_unexpander ChosenFiniteProducts.fst]
+  def unexpFpFst : Unexpander
+    | `($_fst $X $Y) => `([$X]⊗$Y)
+    | `($_fst) => pure $ mkIdent `fst
+  @[app_unexpander ChosenFiniteProducts.snd]
+  def unexpFpSnd : Unexpander
+    | `($_snd $X $Y) => `($X⊗[$Y])
+    | `($_snd) => pure $ mkIdent `snd
+  @[app_unexpander P₁]
+  def unexpP₁ : Unexpander
+    | `($_ $f) => `($f *)
+    | `($_) => `(P₁)
+
+  omit ccc in theorem lift_diag {f : X ⟶ Y} : lift f f = f ≫ diag := by unfold diag; aesop_cat
+  omit ccc in theorem lift_snd_fst : lift (fp.snd X Y) (fp.fst X Y) = twist := by unfold twist; aesop_cat
+  omit ccc in theorem comp_lift_left {f : X ⟶ Y} {g : Y ⟶ Z} : lift (f ≫ g) f = f ≫ lift g (𝟙 _) := by aesop_cat
+  omit ccc in theorem comp_lift_right {f : X ⟶ Y} {g : Y ⟶ Z} : lift f (f ≫ g) = f ≫ lift (𝟙 _) g := by aesop_cat
+  omit ccc in theorem lift_comp_fst_comp_snd {f : X ⟶ Y ⊗ Z} : lift (f ≫ fp.fst _ _) (f ≫ fp.snd _ _) = f := by aesop_cat
 
   omit ccc in theorem PERHom.map_le_extent_dom (f: PERHom (T := T) ρX ρY)
     : isTop (x : X, y : Y ⊢ₕ f⸨x⸩ = y ⇒ x = x) := by
-      apply (isTop_iff_forall_isTop (x : X, y : Y ⊢ₑ x)).mpr
-      conv =>
-        enter [1, 2]
-        rhs
-        tactic =>
-          have H : «fst» X Y = «fst» X Y ≫ 𝟙 _ := by aesop_cat
-          rw [H, ←comp_lift]
-      rw [←P₁.map_comp, T.exists_universal_property']
-      have cow := f.total_mpr
-      simp
-      simp at cow
-      refine le_trans ?a cow
-      conv =>
-        rhs
-        tactic =>
-          have isPB : IsPullback («snd» Y X) (lift («snd» Y X) («fst» Y X)) (𝟙 X) («fst» X Y) := by
-            apply IsPullback.of_iso
-            case h =>
-              constructor
-              · constructor
-                exact Limits.pullbackConeOfLeftIsoIsLimit (𝟙 X) («fst» X Y)
-              · aesop_cat
-            case e₁ => exact {
-              hom := lift («snd» X Y) («fst» X Y)
-              inv := lift («snd» Y X) («fst» Y X)
-            }
-            case e₂ => exact Iso.refl _
-            case e₃ => exact Iso.refl _
-            case e₄ => exact Iso.refl _
-            repeat aesop_cat
-          have BC := T.BeckChevalley𝔼 _ _ _ _ isPB
-          apply funext_iff.mp at BC
-          simp at BC
-          have BC := BC (hom ρX ρY)
-          rw [BC]
-      aesop_cat
-      -- conv at cow =>
-      --   lhs
-      --   tactic =>
-      --     have isPB : IsPullback («snd» Y X) (lift («snd» Y X) («fst» Y X)) (𝟙 X) («fst» X Y) := by sorry
-      --     have BC := T.BeckChevalley𝔼 _ _ _ _ isPB
-      --     apply funext_iff.mp at BC
-      --     simp at BC
-      --     have BC := BC (hom ρX ρY)
-      --     rw [BC]
-      -- unfold P₁
-      -- unfold P₁ at cow
-
-    -- apply isTop_le_isTop (s := x : X ⊢ₕ (∃ y : Y , f⸨x⸩ = y) ⇒ x = x)
-    -- · exact f.total_mpr
-    -- · exact {
-    --     map := x : X, y : Y ⊢ₑ x
-    --     le := by
-    --       rw [P₁.map_himp]
-    --       apply himp_le_himp
-    --       · simp
-    --         conv =>
-    --           rhs
-    --           enter [2]
-    --           tactic =>
-    --             have isPB : IsPullback («snd» Y X) (lift («snd» Y X) («fst» Y X)) (𝟙 X) («fst» X Y) := by sorry
-    --             have cow := T.BeckChevalley𝔼 _ _ _ _ isPB
-    --             apply funext_iff.mp at cow
-    --             simp at cow
-    --             have cow := cow (hom ρX ρY)
-    --             rw [cow]
-    --         conv =>
-    --           rhs
-    --           enter [2]
-    --           exact P₁.map_id
-    --             -- simp
-    --             -- have H : 𝟙 (P.obj (.op X)) = HeytingHom.id _ := by aesop_cat
-    --             -- rw [H]
-    --         conv =>
-    --           rhs
-    --           tactic =>
-    --             have isPB : IsPullback (𝟙 (X ⊗ Y)) (𝟙 (X ⊗ Y)) («fst» X Y) («fst» X Y)  := by sorry
-    --             have cow := T.BeckChevalley𝔼 _ _ _ _ isPB
-    --             apply funext_iff.mp at cow
-    --             simp at cow
-    --             have cow := cow (hom ρX ρY)
-    --             rw [←cow]
-
-    --       · rw [P₁.map_comp]
-    --         simp
-
-
-          -- simp only [Function.comp_apply, map_himp]
-          -- unfold P₁
-          -- simp only [Function.comp_apply]
-          -- rw [map_comp', ←op_comp, comp_lift]
-          -- repeat rw [Category.comp_id]
-          -- apply himp_le_himp_right
-          -- have H' : P.map (lift («fst» X Y) («snd» X Y)).op = P₁ (lift («fst» X Y) («snd» X Y)) := by
-          --   unfold P₁
-          --   simp
-          -- rw [H']
-          -- have H' : P.map (lift («snd» Y X) («fst» Y X)).op = P₁ twist := by
-          --   unfold twist P₁
-          --   simp
-          -- rw [H']
-          -- have H' : P.map («fst» X Y).op = P₁ (fp.fst X Y) := by rfl
-          -- rw [H']
-          -- have H' (𝔼 : LeftAdjoint (fp.snd Y X)) : LeftAdjoint.map (self := 𝔼) («snd» Y X) ((P₁ twist) (hom ρX ρY)) = ((LeftAdjoint.map (self := 𝔼) («snd» Y X)) ∘ (P₁ twist)) (hom ρX ρY) := by
-          --   apply Function.comp_apply
-
-          -- -- rw [H' (T.𝔼 (fp.snd Y X))]
-          -- rw [←Function.comp_apply (f := T.𝔼 (fp.snd _ _)) (g := P₁ twist) (x := hom ρX ρY)]
-          -- -- rw [T.BeckChevalley𝔼 (fp.snd Y X) twist _ _]
-
-          -- let x := (P₁ (lift (fp.fst X Y) (fp.snd X Y))) (hom ρX ρY)
-          -- have H := (T.𝔼 (fp.snd X Y)).unit (x := x)
-          -- trans
-          -- · exact H
-          -- · unfold x
-          --   simp
-          --   apply T.BeckChevalley𝔸 (fp.snd _ _) twist _ _
-
-          -- trans (P₁ (fp.fst Y X)) ((T.𝔼 (fp.fst Y X)) (P.map (lift («snd» Y X) («fst» Y X)).op) (hom ρX ρY)))
-          -- · exact (T.𝔼 (fp.fst Y X)).unit
-          -- · sorry
-          -- apply (T.𝔸 _).adjFrom
-          -- have H : fp.fst X Y = fp.fst X Y ≫ 𝟙 _ := by aesop
-          -- rw [H, ←comp_lift, ←exists_universal_property (𝔼 := T.𝔼 _) (𝔸 := T.𝔸 _)]
-
+    apply (isTop_iff_forall_isTop (x : X, y : Y ⊢ₑ x)).mpr
+    conv =>
+      enter [1, 2]
+      rhs
+      tactic =>
+        have H : «fst» X Y = «fst» X Y ≫ 𝟙 _ := by aesop_cat
+        rw [H, ←comp_lift]
+    rw [P₁.map_comp_app, T.exists_universal_property']
+    have cow := f.total_mpr
+    simp
+    rw [Category.comp_id]
+    simp at cow
+    exact cow
+      -- apply isTop_le_isTop
+      -- case s => exact y : Y, x : X ⊢ₕ f⸨x⸩ = y ⇒ x = x
+      -- case H =>
+      --   apply (isTop_iff_forall_isTop (y : Y, x : X ⊢ₑ x)).mpr
+      --   conv =>
+      --     enter [1, 2]
+      --     rhs
+      --     tactic =>
+      --       have H : «snd» Y X = «snd» Y X ≫ 𝟙 _ := by aesop_cat
+      --       rw [H, ←comp_lift]
+      --   rw [P₁.map_comp_app, T.exists_universal_property']
+      --   have cow := f.total_mpr
+      --   simp
+      --   rw [Category.comp_id]
+      --   simp at cow
+      --   exact cow
+      -- case φ => exact {
+      --     map := x : X, y : Y ⊢ₑ ⟨y, x⟩
+      --     le := by
+      --       rw [Category.comp_id, lift_fst_snd, lift_snd_fst]
+      --       rw [Category.comp_id, lift_snd_fst, lift_diag, lift_diag]
+      --       rw [P₁.map_comp_app, P₁.map_himp]
+      --       conv =>
+      --         lhs
+      --         enter [1]
+      --         rw [←P₁.map_comp_app, twist_twist_eq_id, P₁.map_id]
+      --       conv =>
+      --         lhs
+      --         enter [2]
+      --         rw [←P₁.map_comp_app, twist_snd_eq_fst]
+      --       rw [P₁.map_id, P₁.map_comp_app]
       -- }
-    -- apply isTop_le_isTop (s := y : Y, x : X ⊢ₕ f⸨x⸩ = y ⇒ x = x)
-    -- · apply (isTop_iff_forall_isTop (f := fp.snd Y X)).mpr
-    --   rw [←comp_lift]
-    --   have H : P₁ (P := P) ((fp.snd Y X) ≫ fp.lift (𝟙 X) (𝟙 X)) PER.rel = P₁ (fp.snd Y X) (P₁ (fp.lift (𝟙 X) (𝟙 X)) PER.rel) := by
-    --     unfold P₁
-    --     simp only [Function.comp_apply]
-    --     rw [op_comp, P.map_comp]
-    --     aesop_cat
-    --   rw [H]
-    --   simp
-    --   trans
-    --   · exact T.exists_universal_property'
-    --   · have cow := f.total_mpr
-    --     simp
-    --     simp at cow
-    --     apply cow
-    -- · exact {
-    --   map := x : X, y : Y ⊢ₑ ⟨ y, x ⟩
-    --   le := by
-    --     simp
-    --     unfold P₁
-    --     simp
-    --     have cow := map_comp' (P := P) (z := _)
-    --     -- rw [←P.map_comp' (P := P)]
 
-    -- }
-    -- apply (isTop_iff_forall_isTop (f := fp.snd Y X)).mpr
-    -- simp
-    -- conv =>
-    --   lhs
-    --   enter [2, 2]
-    --   tactic =>
-    --     symm
-    --     trans
-    --     · apply P₁.map_comp
-    --       · exact fp.snd _ _
-    --       · exact lift (𝟙 X) (𝟙 X)
-    --       · exact ρX.rel
-    --     · simp
-    -- simp
-    -- trans
-    -- · exact T.exists_universal_property'
-    -- · have cow := f.total_mpr
-    --   simp
-    --   simp at cow
-    --   apply cow
+  syntax "proj_calc" : tactic
+  macro_rules
+    | `(tactic| proj_calc) =>
+      `(tactic| simp only [comp_lift, lift_fst, lift_snd, ←Category.assoc, Category.id_comp, lift_diag, lift_fst_snd, lift_comp_fst_comp_snd, ←P₁.map_comp_app])
 
-  -- theorem PERHom.map_le_extent_cod (f: PERHom (T := T) ρX ρY)
-  --   : x : X, y : Y ⊢ f⸨x⸩ = y ⇒ y = y := by
-  --   -- let subst := (P₁ (P := P) (x : X, y : Y ⊢ₑ ⟨x, ⟨y, y⟩⟩))
-  --   let subst := (P₁ (P := P) (x : X, y : Y ⊢ₑ ⟨⟨x, y⟩, y⟩))
-  --   let funiq := x : X, y : Y, y' : Y ⊢ₕ f⸨x⸩ = y ⊓ f⸨x⸩ = y' ⇒ y = y'
-  --   calc
-  --     x : X, y : Y ⊢ₕ f⸨x⸩ = y ⇒ y = y
-  --     _ = subst funiq := by sorry
-  --     _ ≥ subst ⊤            := by gcongr; exact f.unique
-  --     _ ≥ ⊤                  := by rw [map_top]
+  omit ccc in theorem PERHom.map_le_extent_cod (f: PERHom (T := T) ρX ρY)
+    : x : X, y : Y ⊢ f⸨x⸩ = y ⇒ y = y := by
+    apply isTop_le_isTop f.unique
+    exact {
+      map := x : X, y : Y ⊢ₑ ⟨⟨x, y⟩, y⟩
+      le := by
+        -- simp only [Function.comp_apply, Category.comp_id, map_himp, map_inf, lift_fst_snd, P₁.map_id]
+        -- rw [HeytingHom.id_apply, lift_diag]
+        rw [lift_diag]
+        simp only [Category.comp_id, lift_fst_snd]
+        rw [P₁.map_himp, P₁.map_inf]
+        proj_calc
+        -- simp only [←P₁.map_comp_app, ←comp_lift, lift_fst_snd, Category.comp_id, lift_fst, lift_snd]
+        -- simp only [comp_lift, lift_fst, lift_snd, ←Category.assoc, Category.id_comp, lift_diag, lift_fst_snd]
+        simp
+
+        -- conv =>
+        --   lhs; enter [2, 1, 1, 1, 1]
+        --   rw [←Category.comp_id (f := fp.fst _ _), ←lift_map]
+        --   simp
+        -- conv =>
+        --   lhs; enter [2, 1, 2, 1, 1]
+        --   rw [←Category.comp_id (f := fp.fst _ _), ←lift_map]
+        --   simp
+        -- conv =>
+        --   lhs; enter [2, 2, 1, 1]
+        --   rw [←comp_lift]
+        --   simp
+        -- simp only [Category.comp_id, lift_fst_snd]
+        -- rw [P₁.map_himp, P₁.map_inf]
+        -- conv =>
+        --   lhs; enter [1, 1]
+        --   rw [←P₁.map_comp_app]
+        --   enter [1, 1]
+        --   rw [←MonoidalCategory.whiskerLeft_comp, diag_fst_eq_id, ←id_tensorHom]
+        --   simp
+        -- conv =>
+        --   lhs; enter [1, 2]
+        --   rw [←P₁.map_comp_app]
+        --   enter [1, 1]
+        --   rw [←MonoidalCategory.whiskerLeft_comp, diag_snd_eq_id, ←id_tensorHom]
+        --   simp
+        -- conv =>
+        --   lhs; enter [2]
+        --   rw [←P₁.map_comp_app]
+        --   enter [1, 1]
+        --   rw [←id_tensorHom]
+        --   simp
+        -- simp
+
+
+
+
+
+
+
+
+
+
+        -- simp only [Function.comp_apply, op_tensorObj, Category.comp_id, map_himp, map_inf, lift_fst_snd]
+
+
+
+    }
+    -- let subst := (P₁ (P := P) (x : X, y : Y ⊢ₑ ⟨x, ⟨y, y⟩⟩))
+    -- let funiq := x : X, y : Y, y' : Y ⊢ₕ f⸨x⸩ = y ⊓ f⸨x⸩ = y' ⇒ y = y'
+    -- calc
+    --   x : X, y : Y ⊢ₕ f⸨x⸩ = y ⇒ y = y
+    --   _ = subst funiq        := by
+    --     unfold subst
+    --     unfold funiq
+    --     simp
+    --   _ ≥ subst ⊤            := by gcongr; exact f.unique
+    --   _ ≥ ⊤                  := by rw [map_top]
 
   -- omit ccc in theorem PERHomDom (f: PERHom (T := T) ρX ρY)
   --   : x : X, y : Y ⊢ f⸨x⸩ = y ⇒ x = x ⊓ f⸨x⸩ = y := by

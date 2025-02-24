@@ -35,6 +35,7 @@ section Tripos
   abbrev P₀ := P.obj ∘ .op
   -- def P₁ {X Y : 𝒞} : (f : X ⟶ Y) → P.obj (.op Y) ⟶ P.obj (.op X) := P.map ∘ .op
   def P₁ {X Y : 𝒞} : (f : X ⟶ Y) → P₀ (P := P) Y ⟶ P₀ (P := P) X := P.map ∘ .op
+  notation f "*" => P₁ f
 
   @[simp]
   theorem P₁.map_id {X : 𝒞} : P₁ (P := P) (𝟙 X) = HeytingHom.id _ := by
@@ -42,11 +43,22 @@ section Tripos
     aesop_cat
 
   @[simp]
-  theorem P₁.map_comp {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} {z : P₀ (P := P) Z} : P₁ f (P₁ g z) = P₁ (f ≫ g) z := by
+  theorem P₁.map_comp {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} : P₁ (P := P) (f ≫ g) = P₁ g ≫ P₁ f := by
     unfold P₁
     aesop_cat
   @[simp]
+  theorem P₁.map_comp_app {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} {z : P₀ (P := P) Z} : P₁ (f ≫ g) z = P₁ f (P₁ g z) := by
+    unfold P₁
+    aesop_cat
+
+  @[simp]
   theorem P₁.map_himp {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⇨ y') = P₁ f y ⇨ P₁ f y' := by
+    aesop_cat
+  @[simp]
+  theorem P₁.map_inf {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⊓ y') = P₁ f y ⊓ P₁ f y' := by
+    aesop_cat
+  @[simp]
+  theorem P₁.map_sup {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⊔ y') = P₁ f y ⊔ P₁ f y' := by
     aesop_cat
 
   theorem P.map_comp' {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} {z : P.obj (.op Z)} : P.map (.op f) (P.map (.op g) z) = P.map (.op g ≫ .op f) z := by
@@ -249,7 +261,7 @@ section Tripos
     def trans (φ : s ⊑ t) (ψ : t ⊑ r) : s ⊑ r where
       map := ψ.map ≫ φ.map
       le := by
-        rw [←P₁.map_comp]
+        rw [P₁.map_comp_app]
         trans (P₁ ψ.map) t
         · gcongr
           exact φ.le

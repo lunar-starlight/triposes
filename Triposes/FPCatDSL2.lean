@@ -47,11 +47,11 @@ section ProjDSL
   partial def prodify : TSyntax `fpcontext → MacroM Term
   | `(fpcontext| ) => `(𝟙_ _)
   | `(fpcontext| $_:ident : $A:term) => `($A)
-  | `(fpcontext| $_:ident : $A:term, $Γ:typing_judgement,*) =>
+  | `(fpcontext| $Γ:typing_judgement,* , $_:ident : $A:term) =>
     do
       let Γ ← `(fpcontext| $Γ:typing_judgement,*)
       let As ← prodify Γ
-      `($A ⊗ $As)
+      `($As ⊗ $A)
   | _ => Macro.throwError "invalid context syntax"
 
   /-- Given an identifier `x` and a context `Γ`, compute the projection from `Γ` determined by `x`. -/
@@ -60,13 +60,13 @@ section ProjDSL
   | `(fpcontext| $y:ident : $A:term) =>
       -- the only thing that can be projected is `x` by the identity morphism
       if x = y.getId then `(𝟙 $A) else Macro.throwError s!"unkown identifier {x}"
-  | `(fpcontext| $y:ident : $A:term, $Γ:typing_judgement,*) =>
+  | `(fpcontext| $Γ:typing_judgement,* , $y:ident : $A:term) =>
     if x = y.getId then
-      `(ChosenFiniteProducts.fst $A _)
+      `(ChosenFiniteProducts.snd _ $A)
     else do
       let Γ ← `(fpcontext| $Γ:typing_judgement,*)
       let p ← project x Γ
-      `(ChosenFiniteProducts.snd $A _ ≫ $p)
+      `(ChosenFiniteProducts.fst _ $A ≫ $p)
   | _ => Macro.throwError "invalid context syntax"
 
   /-- Conversion of the internal syntax to a (term representing) morphism -/
@@ -74,7 +74,7 @@ section ProjDSL
   | `($Γ:fpcontext ⊢ₑ $x:ident) => project x.getId Γ
   | `($Γ:fpcontext ⊢ₑ tt) =>
     /- We could skip using `prodify` here and just return `(ChosenFiniteProducts.toUnit _)`, but the
-       result is a bit too polymorphic, as `⊢ₑ tt` would denote *any* morphihm `toUnit X`. -/
+       result is a bit too polymorphic, as `⊢ₑ tt` would denote *any* morphism `toUnit X`. -/
     do { let A ← prodify Γ ; `(ChosenFiniteProducts.toUnit $A) }
   | `($Γ:fpcontext ⊢ₑ ⟨ $a:fpterm, $b:fpterm ⟩) => `(ChosenFiniteProducts.lift ($Γ:fpcontext ⊢ₑ $a) ($Γ:fpcontext ⊢ₑ $b))
   | `($Γ:fpcontext ⊢ₑ fst $a:fpterm) => `(($Γ:fpcontext ⊢ₑ $a) ≫ ChosenFiniteProducts.fst _ _)
@@ -95,12 +95,21 @@ section Examples
   example {X : 𝒞} : X ⟶ X := x : X ⊢ₑ x
 
   /-- the twist morphism -/
-  example {X Y : 𝒞} : X ⊗ Y ⟶ Y ⊗ X :=
+  def twist {X Y : 𝒞} : X ⊗ Y ⟶ Y ⊗ X :=
     x : X, y : Y ⊢ₑ ⟨ y, x ⟩
 
+  /-- the twist morphism is self-inverse -/
+  def twist_twist_eq_id {X Y : 𝒞} : twist (X := X) ≫ twist = 𝟙 (X ⊗ Y) := by unfold twist; aesop_cat
+
+  def twist_fst_eq_snd {X Y : 𝒞} : twist ≫ fp.fst X Y = fp.snd _ _ := by unfold twist; aesop_cat
+  def twist_snd_eq_fst {X Y : 𝒞} : twist ≫ fp.snd X Y = fp.fst _ _ := by unfold twist; aesop_cat
+
   /-- the diagonal -/
-  example {X : 𝒞} : X ⟶ X ⊗ X :=
+  def diag {X : 𝒞} : X ⟶ X ⊗ X :=
     x : X ⊢ₑ ⟨ x, x ⟩
+
+  def diag_fst_eq_id {X : 𝒞} : diag ≫ fp.fst X X = 𝟙 X := by unfold diag; aesop_cat
+  def diag_snd_eq_id {X : 𝒞} : diag ≫ fp.snd X X = 𝟙 X := by unfold diag; aesop_cat
 
   /-- the first projection is the first projection -/
   example {X Y : 𝒞} : (p : X ⊗ Y ⊢ₑ fst p) = (p : X ⊗ Y ⊢ₑ $(fp.fst X Y) p) := by simp
