@@ -52,19 +52,23 @@ namespace Language
   --   | [] => (T.𝔼 π).map (P₁ (fp.fst _ _) (eval _ φ))
   --   | _ :: _ => (T.𝔼 π).map (eval _ φ)
 
+
+  scoped infixl:100 " ⇔ " => bihimp
+
   declare_syntax_cat fpformula
   syntax "⊤" : fpformula
   syntax "⊥" : fpformula
-  syntax:50 fpformula "⊓" fpformula : fpformula
-  syntax:40 fpformula "⊔" fpformula : fpformula
-  syntax:30 fpformula "⇒" fpformula : fpformula
-  syntax:60 "∀" typing_judgement "," fpformula : fpformula
-  syntax:60 "∃" typing_judgement "," fpformula : fpformula
+  syntax:70 fpformula "⊓" fpformula:71 : fpformula
+  syntax:60 fpformula "⊔" fpformula:61 : fpformula
+  syntax:50 fpformula "⇒" fpformula:51 : fpformula
+  syntax:50 fpformula "⇔" fpformula:51 : fpformula
+  syntax:80 "∀" typing_judgement "," fpformula:79 : fpformula
+  syntax:80 "∃" typing_judgement "," fpformula:79 : fpformula
   syntax:100 "(" fpformula ")" : fpformula
   syntax:1025 "⟪" term "|" fpterm "⟫" : fpformula
 
-  syntax:10 fpcontext "⊢ₕ" fpformula : term
-  syntax:10 fpcontext "⊢" fpformula : term
+  syntax:30 fpcontext "⊢ₕ" fpformula : term
+  syntax:30 fpcontext "⊢" fpformula : term
 
   partial def unfold : TSyntax `fpcontext → MacroM (Array (TSyntax `typing_judgement))
   | `(fpcontext| ) => pure Array.empty
@@ -84,9 +88,22 @@ namespace Language
   | `($Γ:fpcontext ⊢ₕ ⟪ $f:term | $t:fpterm ⟫) => do
     let t ← `($Γ:fpcontext ⊢ₑ $t)
     `(P₁ $t $f)
-  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⊓ $t:fpformula) => do let s ← `($Γ:fpcontext ⊢ₕ $s); let t ← `($Γ:fpcontext ⊢ₕ $t); `($s ⊓ $t)
-  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⊔ $t:fpformula) => do let s ← `($Γ:fpcontext ⊢ₕ $s); let t ← `($Γ:fpcontext ⊢ₕ $t); `($s ⊔ $t)
-  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⇒ $t:fpformula) => do let s ← `($Γ:fpcontext ⊢ₕ $s); let t ← `($Γ:fpcontext ⊢ₕ $t); `($s ⇨ $t)
+  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⊓ $t:fpformula) => do
+    let s ← `($Γ:fpcontext ⊢ₕ $s)
+    let t ← `($Γ:fpcontext ⊢ₕ $t)
+    `($s ⊓ $t)
+  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⊔ $t:fpformula) => do
+    let s ← `($Γ:fpcontext ⊢ₕ $s)
+    let t ← `($Γ:fpcontext ⊢ₕ $t)
+    `($s ⊔ $t)
+  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⇒ $t:fpformula) => do
+    let s ← `($Γ:fpcontext ⊢ₕ $s)
+    let t ← `($Γ:fpcontext ⊢ₕ $t)
+    `($s ⇨ $t)
+  | `($Γ:fpcontext ⊢ₕ $s:fpformula ⇔ $t:fpformula) => do
+    let s ← `($Γ:fpcontext ⊢ₕ $s)
+    let t ← `($Γ:fpcontext ⊢ₕ $t)
+    `($s ⇔ $t)
   | `($_:fpcontext ⊢ₕ ⊤) => `(⊤)
   | `($_:fpcontext ⊢ₕ ⊥) => `(⊥)
   | `($Γ:fpcontext ⊢ₕ ∀ $y:ident : $Y:term , $t:fpformula) => do
@@ -98,6 +115,6 @@ namespace Language
     let t ← `($y:ident : $Y:term , $jdgs,* ⊢ₕ $t)
     `((Tripos.𝔼 (ChosenFiniteProducts.snd _ _)).map $t)
   | `($Γ:fpcontext ⊢ₕ ($t:fpformula)) => `($Γ:fpcontext ⊢ₕ $t)
-  | `($Γ:fpcontext ⊢ $t:fpformula) => `(⊤ = ($Γ:fpcontext ⊢ₕ $t))
+  | `($Γ:fpcontext ⊢ $t:fpformula) => `(($Γ:fpcontext ⊢ₕ $t) ≥ ⊤)
 
 end Language
