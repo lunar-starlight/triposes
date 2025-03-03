@@ -23,7 +23,7 @@ section Tripos
 
   -- instance {X Y} [HeytingAlgebra X] [HeytingAlgebra Y] {f : HeytingHom X Y} : Monotone f := by infer_instance
   -- @[coe]
-  -- def HeytingHomCoe {X Y : Type} [HeytingAlgebra X] [HeytingAlgebra Y] (f : HeytingHom X Y) : OrderHom X Y := f
+  def HeytingHom.toOrderHom {X Y : Type} [HeytingAlgebra X] [HeytingAlgebra Y] (f : HeytingHom X Y) : OrderHom X Y := f
   def HeytingHom.monotone {X Y : Type} [HeytingAlgebra X] [HeytingAlgebra Y] (f : HeytingHom X Y) : Monotone f := by
     rintro a b a_le_b
     gcongr
@@ -52,33 +52,39 @@ section Tripos
     aesop_cat
 
   @[simp]
-  theorem P₁.map_himp {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⇨ y') = P₁ f y ⇨ P₁ f y' := by
-    aesop_cat
+  theorem P₁.map_himp {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⇨ y') = P₁ f y ⇨ P₁ f y' := by aesop_cat
   @[simp]
-  theorem P₁.map_inf {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⊓ y') = P₁ f y ⊓ P₁ f y' := by
-    aesop_cat
+  theorem P₁.map_inf {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⊓ y') = P₁ f y ⊓ P₁ f y' := by aesop_cat
   @[simp]
-  theorem P₁.map_sup {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⊔ y') = P₁ f y ⊔ P₁ f y' := by
-    aesop_cat
+  theorem P₁.map_sup {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⊔ y') = P₁ f y ⊔ P₁ f y' := by aesop_cat
+  @[simp]
+  theorem P₁.map_top {X Y : 𝒞} {f : X ⟶ Y} : P₁ (P := P) f ⊤ = ⊤ := by aesop_cat
 
   theorem P.map_comp' {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} {z : P.obj (.op Z)} : P.map (.op f) (P.map (.op g) z) = P.map (.op g ≫ .op f) z := by
     aesop_cat
 
+  theorem P₁.map_mono {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} (H : y ≤ y') : P₁ (P := P) f y ≤ P₁ (P := P) f y' := by
+    apply OrderHomClass.GCongr.mono _ H
+
   @[reducible]
   def isTop {X : 𝒞} (t : P₀ (P := P) X) := t ≥ ⊤
+
+  theorem P₁.map_isTop {X Y : 𝒞} {f : X ⟶ Y} {t : P₀ (P := P) Y} : isTop t → isTop (P₁ f t) := by
+    rintro H
+    simp at H
+    rw [H]
+    simp
 
   section Adjoints
     variable {X Y : 𝒞} (f : X ⟶ Y)
 
     class LeftAdjoint where
       map : OrderHom (P₀ (P := P) X) (P₀ Y)
-      adjTo   : ∀ {x : P₀ X} {y : P₀ Y}, (map x ≤ y) → (x ≤ P₁ f y)
-      adjFrom : ∀ {x : P₀ X} {y : P₀ Y}, (x ≤ P₁ f y) → (map x ≤ y)
+      adj : ∀ {x : P₀ X} {y : P₀ Y}, (x ≤ P₁ f y) ↔ (map x ≤ y)
 
     class RightAdjoint where
       map : OrderHom (P₀ (P := P) X) (P₀ Y)
-      adjTo   : ∀ {y : P₀ Y} {x : P₀ X}, (P₁ f y ≤ x) → (y ≤ map x )
-      adjFrom : ∀ {y : P₀ Y} {x : P₀ X}, (y ≤ map x) → (P₁ f y ≤ x)
+      adj : ∀ {y : P₀ Y} {x : P₀ X}, (P₁ f y ≤ x) ↔ (y ≤ map x )
 
     instance : FunLike (RightAdjoint (P := P) f) (P₀ (P := P) X) (P₀ (P := P) Y) where
       coe := fun f => f.map
@@ -94,7 +100,7 @@ section Tripos
       map_top := by
         rintro 𝔸
         apply top_unique
-        apply 𝔸.adjTo
+        apply 𝔸.adj.mp
         simp
 
     instance : InfHomClass (RightAdjoint (P := P) f) (P₀ (P := P) X) (P₀ (P := P) Y) where
@@ -106,10 +112,10 @@ section Tripos
           constructor
           repeat apply 𝔸.map.monotone; simp
         case a =>
-          apply 𝔸.adjTo
+          apply 𝔸.adj.mp
           simp only [Function.comp_apply, le_inf_iff]
           constructor
-          all_goals apply 𝔸.adjFrom
+          all_goals apply 𝔸.adj.mpr
           · apply inf_le_left
           · apply inf_le_right
 
@@ -127,7 +133,7 @@ section Tripos
       map_bot := by
         rintro 𝔼
         apply bot_unique
-        apply 𝔼.adjFrom
+        apply 𝔼.adj.mp
         simp
 
     instance : SupHomClass (LeftAdjoint (P := P) f) (P₀ (P := P) X) (P₀ (P := P) Y) where
@@ -135,10 +141,10 @@ section Tripos
         rintro 𝔼 a b
         apply le_antisymm
         case a =>
-          apply 𝔼.adjFrom
+          apply 𝔼.adj.mp
           simp only [Function.comp_apply, sup_le_iff]
           constructor
-          all_goals apply 𝔼.adjTo
+          all_goals apply 𝔼.adj.mpr
           · apply le_sup_left
           · apply le_sup_right
         case a =>
@@ -146,71 +152,103 @@ section Tripos
           constructor
           repeat apply 𝔼.map.monotone; simp
 
-    lemma RightAdjoint.unit {f : X ⟶ Y} {y : P₀ (P := P) Y} {𝔸 : RightAdjoint f} : y ≤ 𝔸 (P₁ f y) := by
-      apply 𝔸.adjTo
-      rfl
+    namespace LeftAdjoint
+      variable {f : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ (P := P) Y}
+      variable [𝔼 : LeftAdjoint (P := P) f]
 
-    lemma RightAdjoint.counit {f : X ⟶ Y} {x : P₀ (P := P) X} {𝔸 : RightAdjoint f} : P₁ f (𝔸 x) ≤ x := by
-      apply 𝔸.adjFrom
-      rfl
+      lemma unit : x ≤ P₁ f (𝔼 x) := by
+        apply 𝔼.adj.mpr
+        rfl
 
-    lemma LeftAdjoint.unit {f : X ⟶ Y} {x : P₀ (P := P) X} {𝔼 : LeftAdjoint f} : x ≤ P₁ f (𝔼 x) := by
-      apply 𝔼.adjTo
-      rfl
+      lemma counit : 𝔼 (P₁ f y) ≤ y := by
+        apply 𝔼.adj.mp
+        rfl
 
-    lemma LeftAdjoint.counit {f : X ⟶ Y} {y : P₀ (P := P) Y} {𝔼 : LeftAdjoint f} : 𝔼 (P₁ f y) ≤ y := by
-      apply 𝔼.adjFrom
-      rfl
+      lemma id_adj_id [𝔼 : LeftAdjoint (P := P) (𝟙 X)] : 𝔼.map = OrderHom.id := by
+        apply le_antisymm
+        · apply OrderHom.le_def.mpr
+          rintro x
+          apply 𝔼.adj.mp
+          unfold P₁
+          aesop_cat
+        · apply OrderHom.le_def.mpr
+          rintro x
+          simp
+          trans
+          · exact 𝔼.unit
+          · unfold P₁
+            aesop_cat
 
-    lemma exists_universal_property {f : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ Y} [𝔸 : RightAdjoint f] [𝔼 : LeftAdjoint f]
+      lemma frob_left : 𝔼 (x ⊓ P₁ f y) = (𝔼 x) ⊓ y := by
+        apply le_antisymm
+        · apply le_inf
+          all_goals apply 𝔼.adj.mp
+          · trans
+            · apply inf_le_left
+            · apply 𝔼.unit
+          · apply inf_le_right
+        · apply le_himp_iff.mp
+          apply 𝔼.adj.mp
+          simp
+          apply 𝔼.unit
+
+      lemma frob_right : 𝔼 (P₁ f y ⊓ x) = y ⊓ (𝔼 x) := by
+        rw [inf_comm, inf_comm y]
+        exact 𝔼.frob_left
+
+    end LeftAdjoint
+
+    namespace RightAdjoint
+      variable {f : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ (P := P) Y}
+      variable [𝔸 : RightAdjoint (P := P) f]
+
+      lemma unit : y ≤ 𝔸 (P₁ f y) := by
+        apply 𝔸.adj.mp
+        rfl
+
+      lemma counit : P₁ f (𝔸 x) ≤ x := by
+        apply 𝔸.adj.mpr
+        rfl
+
+      lemma id_adj_id [𝔸 : RightAdjoint (P := P) (𝟙 X)] : 𝔸.map = OrderHom.id := by
+        apply le_antisymm
+        · apply OrderHom.le_def.mpr
+          rintro x
+          simp
+          trans (P₁ (𝟙 X)) (𝔸 x)
+          · unfold P₁
+            aesop_cat
+          · exact 𝔸.counit
+        · apply OrderHom.le_def.mpr
+          rintro x
+          apply 𝔸.adj.mp
+          unfold P₁
+          aesop_cat
+
+      lemma top_eq_top : 𝔸 ⊤ = ⊤ := by
+        apply top_le_iff.mp
+        apply 𝔸.adj.mp
+        simp
+
+    end RightAdjoint
+
+    lemma LeftAdjoint_congr {X Y : 𝒞} {f g : X ⟶ Y} (H: f = g) : LeftAdjoint (P := P) f = LeftAdjoint (P := P) g := congrArg LeftAdjoint H
+    lemma RightAdjoint_congr {X Y : 𝒞} {f g : X ⟶ Y} (H : f = g) : RightAdjoint (P := P) f = RightAdjoint (P := P) g := congrArg RightAdjoint H
+
+    lemma frobenius' {f : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ Y} [𝔸 : RightAdjoint f] [𝔼 : LeftAdjoint f]
       : 𝔸 (x ⇨ P₁ f y) = (𝔼 x) ⇨ y := by
       apply le_antisymm
       case a =>
         apply le_himp_comm.mp
-        apply 𝔼.adjFrom
+        apply 𝔼.adj.mp
         simp only [Function.comp_apply, map_himp]
         apply le_himp_comm.mp
         apply 𝔸.counit
       case a =>
-        apply 𝔸.adjTo
+        apply 𝔸.adj.mp
         simp only [Function.comp_apply, map_himp]
         apply himp_le_himp_right
         apply 𝔼.unit
-
-    lemma exists_id_eq_id [𝔼 : LeftAdjoint (P := P) (𝟙 X)] : 𝔼.map = OrderHom.id := by
-      apply le_antisymm
-      · apply OrderHom.le_def.mpr
-        rintro x
-        apply 𝔼.adjFrom
-        unfold P₁
-        aesop_cat
-      · apply OrderHom.le_def.mpr
-        rintro x
-        simp
-        trans
-        · exact 𝔼.unit
-        · unfold P₁
-          aesop_cat
-
-    lemma forall_id_eq_id [𝔸 : RightAdjoint (P := P) (𝟙 X)] : 𝔸.map = OrderHom.id := by
-      apply le_antisymm
-      · apply OrderHom.le_def.mpr
-        rintro x
-        simp
-        trans (P₁ (𝟙 X)) (𝔸 x)
-        · unfold P₁
-          aesop_cat
-        · exact 𝔸.counit
-      · apply OrderHom.le_def.mpr
-        rintro x
-        apply 𝔸.adjTo
-        unfold P₁
-        aesop_cat
-
-    lemma forall_top_eq_top {f : X ⟶ Y} [𝔸 : RightAdjoint (P := P) f] : 𝔸 ⊤ = ⊤ := by
-      apply top_le_iff.mp
-      apply 𝔸.adjTo
-      simp
 
   end Adjoints
 
@@ -226,61 +264,81 @@ section Tripos
     𝔼 : ∀ {X Y : 𝒞} (f : X ⟶ Y), LeftAdjoint (P := P) f
     𝔸 : ∀ {X Y : 𝒞} (f : X ⟶ Y), RightAdjoint (P := P) f
 
-    BeckChevalley𝔼 : ∀ {X Y Z W : 𝒞} (f : X ⟶ Y) (g : X ⟶ Z) (h : Y ⟶ W) (k : Z ⟶ W),
+    BeckChevalley𝔼' : ∀ {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W},
       IsPullback f g h k → (𝔼 f).map ∘ P₁ g = P₁ h ∘ (𝔼 k).map
-    BeckChevalley𝔸 : ∀ {X Y Z W : 𝒞} (f : X ⟶ Y) (g : X ⟶ Z) (h : Y ⟶ W) (k : Z ⟶ W),
+    BeckChevalley𝔸' : ∀ {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W},
       IsPullback f g h k → (𝔸 f).map ∘ P₁ g = P₁ h ∘ (𝔸 k).map
 
--- def eval [ConcreteCategory 𝒞] [T : Tripos P] {X Y : 𝒞} (v : P₀ (P := P) X) (f : P₀ (P := P) (X ⊗ Y)) : P₀ (P := P) Y :=
---   by
-    -- have foo : Y ⟶ X := by sorry
-    -- have cow := P₁ (P := P) (fp.lift foo (𝟙 Y))
-    -- have cow : HeytingHom (P₀ (P := P) (X ⊗ Y)) (P₀ (P := P) Y) := by
-    -- have cow := P₁ (fun ⟨x, y⟩ ↦ ⟨v,y⟩) f
-
-  -- def Tripos.All [T : Tripos P] {X Y : 𝒞} : RightAdjoint (P := P) (fp.snd X Y) := T.𝔸 (fp.snd X Y)
-
-  omit fp ccc in lemma Tripos.exists_universal_property' [T : Tripos P] {X Y : 𝒞} {f : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ Y}
-    : T.𝔸 f (x ⇨ P₁ f y) = (T.𝔼 f x) ⇨ y := exists_universal_property (𝔸 := T.𝔸 f) (𝔼 := T.𝔼 f)
-  omit fp ccc in lemma Tripos.forall_top_eq_top' [T : Tripos P] {X Y : 𝒞} {f : X ⟶ Y}
-    : T.𝔸 f ⊤ = ⊤ := forall_top_eq_top (𝔸 := T.𝔸 f)
-
-  class Tripos.TermLE {X Y : 𝒞}  (t : P₀ (P := P) X) (u : P₀ Y) where
-    map : Y ⟶ X
-    le : P₁ map t ≤ u
-
-  infixr:10 " ⊑ " => Tripos.TermLE
-
-  namespace Tripos.TermLE
-    variable {X Y Z : 𝒞} {s : P₀ (P := P) X} {t : P₀ (P := P) Y} {r : P₀ (P := P) Z}
+  namespace Tripos
     variable [T : Tripos P]
 
-    def refl : s ⊑ s where
-      map := 𝟙 _
-      le := by aesop_cat
-    def trans (φ : s ⊑ t) (ψ : t ⊑ r) : s ⊑ r where
-      map := ψ.map ≫ φ.map
-      le := by
-        rw [P₁.map_comp_app]
-        trans (P₁ ψ.map) t
-        · gcongr
-          exact φ.le
-        · exact ψ.le
+    section BC
+      variable {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W}
 
-    def isTop_le_isTop {φ : s ⊑ t} (H : isTop s) : isTop t := by
-      simp at H
-      rw [H] at φ
-      simp
-      apply eq_top_iff.mpr
-      trans P₁ (P := P) φ.map ⊤
-      · simp
-      · exact φ.le
+      def 𝔼_BeckChevalley : IsPullback f g h k → ∀ {z : P₀ Z}, T.𝔼 f (P₁ g z) = P₁ h (T.𝔼 k z) := by
+        rintro isPB
+        have cow := T.BeckChevalley𝔼' isPB
+        apply funext_iff.mp at cow
+        rintro z
+        apply cow z
+      def 𝔸_BeckChevalley : IsPullback f g h k → ∀ {z : P₀ Z}, T.𝔸 f (P₁ g z) = P₁ h (T.𝔸 k z) := by
+        rintro isPB
+        have cow := T.BeckChevalley𝔸' isPB
+        apply funext_iff.mp at cow
+        rintro z
+        apply cow z
+    end BC
 
-    def forall_le {f : X ⟶ Y} [𝔸 : RightAdjoint f] {x : P₀ (P := P) X} : 𝔸 x ⊑ x where
-      map := f
-      le := 𝔸.counit
+    variable {X Y : 𝒞} {f g : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ (P := P) Y}
 
-  end Tripos.TermLE
+    def 𝔼_congr (H : f = g) : (T.𝔼 f).map = (T.𝔼 g).map := by aesop
+    def 𝔼_congr_app (H : f = g) : T.𝔼 f x = T.𝔼 g x := by aesop
+    def 𝔸_congr (H : f = g) : (T.𝔸 f).map = (T.𝔸 g).map := by aesop
+    def 𝔸_congr_app (H : f = g) : T.𝔸 f x = T.𝔸 g x := by aesop
+
+    omit fp ccc in lemma frobenius : T.𝔸 f (x ⇨ P₁ f y) = (T.𝔼 f x) ⇨ y := frobenius' (𝔸 := T.𝔸 f) (𝔼 := T.𝔼 f)
+    omit fp ccc in lemma 𝔸_top_eq_top : T.𝔸 f ⊤ = ⊤ := (T.𝔸 f).top_eq_top
+
+    omit fp ccc in lemma 𝔼_frob_left  : T.𝔼 f (x ⊓ P₁ f y) = (T.𝔼 f x) ⊓ y := (T.𝔼 f).frob_left
+    omit fp ccc in lemma 𝔼_frob_right : T.𝔼 f (P₁ f y ⊓ x) = y ⊓ (T.𝔼 f x) := (T.𝔼 f).frob_right
+
+    class TermLE {X Y : 𝒞} (t : P₀ (P := P) X) (u : P₀ Y) where
+      map : Y ⟶ X
+      le : P₁ map t ≤ u
+
+    infixr:10 " ⊑ " => Tripos.TermLE
+
+    namespace TermLE
+      variable {X Y Z : 𝒞} {s : P₀ (P := P) X} {t : P₀ (P := P) Y} {r : P₀ (P := P) Z}
+      variable [T : Tripos P]
+
+      def refl : s ⊑ s where
+        map := 𝟙 _
+        le := by aesop_cat
+      def trans (φ : s ⊑ t) (ψ : t ⊑ r) : s ⊑ r where
+        map := ψ.map ≫ φ.map
+        le := by
+          rw [P₁.map_comp_app]
+          trans (P₁ ψ.map) t
+          · gcongr
+            exact φ.le
+          · exact ψ.le
+
+      def isTop_le_isTop (H : isTop s) (φ : s ⊑ t) : isTop t := by
+        simp at H
+        rw [H] at φ
+        simp
+        apply eq_top_iff.mpr
+        trans P₁ (P := P) φ.map ⊤
+        · simp
+        · exact φ.le
+
+      def forall_le {f : X ⟶ Y} [𝔸 : RightAdjoint f] {x : P₀ (P := P) X} : 𝔸 x ⊑ x where
+        map := f
+        le := 𝔸.counit
+
+    end TermLE
+  end Tripos
 
   -- class Tripos.TermEq {X Y : 𝒞} (t : P₀ (P := P) X) (u : P₀ Y) where
   --   iso : X ≅ Y

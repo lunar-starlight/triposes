@@ -94,8 +94,9 @@ section PERLemata
     constructor
     · simp
       rintro rfl
-      apply T.forall_top_eq_top'
-    · apply isTop_le_isTop
+      exact T.𝔸_top_eq_top
+    · rintro H
+      apply isTop_le_isTop H
       exact forall_le (𝔸 := T.𝔸 f)
 
   open Lean PrettyPrinter Delaborator SubExpr
@@ -128,49 +129,24 @@ section PERLemata
       tactic =>
         have H : «fst» X Y = «fst» X Y ≫ 𝟙 _ := by aesop_cat
         rw [H, ←comp_lift]
-    rw [P₁.map_comp_app, T.exists_universal_property']
+    rw [P₁.map_comp_app, T.frobenius]
     have cow := f.total_mpr
     simp
     rw [Category.comp_id]
     simp at cow
     exact cow
-      -- apply isTop_le_isTop
-      -- case s => exact y : Y, x : X ⊢ₕ f⸨x⸩ = y ⇒ x = x
-      -- case H =>
-      --   apply (isTop_iff_forall_isTop (y : Y, x : X ⊢ₑ x)).mpr
-      --   conv =>
-      --     enter [1, 2]
-      --     rhs
-      --     tactic =>
-      --       have H : «snd» Y X = «snd» Y X ≫ 𝟙 _ := by aesop_cat
-      --       rw [H, ←comp_lift]
-      --   rw [P₁.map_comp_app, T.exists_universal_property']
-      --   have cow := f.total_mpr
-      --   simp
-      --   rw [Category.comp_id]
-      --   simp at cow
-      --   exact cow
-      -- case φ => exact {
-      --     map := x : X, y : Y ⊢ₑ ⟨y, x⟩
-      --     le := by
-      --       rw [Category.comp_id, lift_fst_snd, lift_snd_fst]
-      --       rw [Category.comp_id, lift_snd_fst, lift_diag, lift_diag]
-      --       rw [P₁.map_comp_app, P₁.map_himp]
-      --       conv =>
-      --         lhs
-      --         enter [1]
-      --         rw [←P₁.map_comp_app, twist_twist_eq_id, P₁.map_id]
-      --       conv =>
-      --         lhs
-      --         enter [2]
-      --         rw [←P₁.map_comp_app, twist_snd_eq_fst]
-      --       rw [P₁.map_id, P₁.map_comp_app]
-      -- }
 
-  syntax "proj_calc" : tactic
+  syntax "simp_proj" : tactic
+  syntax "simp_proj_only" : tactic
   macro_rules
-    | `(tactic| proj_calc) =>
-      `(tactic| simp only [comp_lift, lift_fst, lift_snd, ←Category.assoc, Category.id_comp, lift_diag, lift_fst_snd, lift_comp_fst_comp_snd, ←P₁.map_comp_app])
+    | `(tactic| simp_proj_only) =>
+      `(tactic| simp only
+        [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd,
+        ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp])
+    | `(tactic| simp_proj) =>
+      `(tactic| simp
+        [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd,
+        ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp])
 
   omit ccc in theorem PERHom.map_le_extent_cod (f: PERHom (T := T) ρX ρY)
     : x : X, y : Y ⊢ f⸨x⸩ = y ⇒ y = y := by
@@ -178,91 +154,273 @@ section PERLemata
     exact {
       map := x : X, y : Y ⊢ₑ ⟨⟨x, y⟩, y⟩
       le := by
-        -- simp only [Function.comp_apply, Category.comp_id, map_himp, map_inf, lift_fst_snd, P₁.map_id]
-        -- rw [HeytingHom.id_apply, lift_diag]
         rw [lift_diag]
         simp only [Category.comp_id, lift_fst_snd]
         rw [P₁.map_himp, P₁.map_inf]
-        proj_calc
-        -- simp only [←P₁.map_comp_app, ←comp_lift, lift_fst_snd, Category.comp_id, lift_fst, lift_snd]
-        -- simp only [comp_lift, lift_fst, lift_snd, ←Category.assoc, Category.id_comp, lift_diag, lift_fst_snd]
+        simp_proj_only
         simp
-
-        -- conv =>
-        --   lhs; enter [2, 1, 1, 1, 1]
-        --   rw [←Category.comp_id (f := fp.fst _ _), ←lift_map]
-        --   simp
-        -- conv =>
-        --   lhs; enter [2, 1, 2, 1, 1]
-        --   rw [←Category.comp_id (f := fp.fst _ _), ←lift_map]
-        --   simp
-        -- conv =>
-        --   lhs; enter [2, 2, 1, 1]
-        --   rw [←comp_lift]
-        --   simp
-        -- simp only [Category.comp_id, lift_fst_snd]
-        -- rw [P₁.map_himp, P₁.map_inf]
-        -- conv =>
-        --   lhs; enter [1, 1]
-        --   rw [←P₁.map_comp_app]
-        --   enter [1, 1]
-        --   rw [←MonoidalCategory.whiskerLeft_comp, diag_fst_eq_id, ←id_tensorHom]
-        --   simp
-        -- conv =>
-        --   lhs; enter [1, 2]
-        --   rw [←P₁.map_comp_app]
-        --   enter [1, 1]
-        --   rw [←MonoidalCategory.whiskerLeft_comp, diag_snd_eq_id, ←id_tensorHom]
-        --   simp
-        -- conv =>
-        --   lhs; enter [2]
-        --   rw [←P₁.map_comp_app]
-        --   enter [1, 1]
-        --   rw [←id_tensorHom]
-        --   simp
-        -- simp
-
-
-
-
-
-
-
-
-
-
-        -- simp only [Function.comp_apply, op_tensorObj, Category.comp_id, map_himp, map_inf, lift_fst_snd]
-
-
-
     }
-    -- let subst := (P₁ (P := P) (x : X, y : Y ⊢ₑ ⟨x, ⟨y, y⟩⟩))
-    -- let funiq := x : X, y : Y, y' : Y ⊢ₕ f⸨x⸩ = y ⊓ f⸨x⸩ = y' ⇒ y = y'
-    -- calc
-    --   x : X, y : Y ⊢ₕ f⸨x⸩ = y ⇒ y = y
-    --   _ = subst funiq        := by
-    --     unfold subst
-    --     unfold funiq
-    --     simp
-    --   _ ≥ subst ⊤            := by gcongr; exact f.unique
-    --   _ ≥ ⊤                  := by rw [map_top]
 
-  -- omit ccc in theorem PERHomDom (f: PERHom (T := T) ρX ρY)
-  --   : x : X, y : Y ⊢ f⸨x⸩ = y ⇒ x = x ⊓ f⸨x⸩ = y := by
-  --   simp
-  --   have := f.map_le_extent_dom
-  --   simp at this
-  --   exact this
+  omit ccc in theorem PERHomDom (f: PERHom (T := T) ρX ρY)
+    : x : X, y : Y ⊢ f⸨x⸩ = y ⇒ x = x ⊓ f⸨x⸩ = y := by
+    simp
+    have := f.map_le_extent_dom
+    simp at this
+    exact this
 
-  -- def PERHomComp {X Y Z : 𝒞} {ρX : PER (P := P) X} {ρY : PER (P := P) Y} {ρZ : PER (P := P) Z}
-  --   : (PERHom ρY ρZ) → (PERHom ρX ρY) → (PERHom ρX ρZ) :=
-  --   fun g f => {
-  --     hom := x : X, z : Z ⊢ₕ ∃ y : Y, f⸨x⸩ = y ⊓ g⸨y⸩ = z
-  --     congrDom := by
-  --       apply Preorder.le_trans
-  --       · sorry
-  --       · sorry
-  --     congrCod := sorry
-  --     unique   := sorry
-  --     total    := sorry
-  --   }
+  def PERHomComp (g : PERHom ρY ρZ) (f : PERHom ρX ρY) : PERHom ρX ρZ where
+    hom := x : X, z : Z ⊢ₕ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z)
+    congrDom := by
+      simp_proj_only
+      have isPB : IsPullback
+        (x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x, x'⟩, z⟩) (x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x', z⟩, y⟩)
+        (x : X, x' : X, z : Z ⊢ₑ ⟨x', z⟩) (x' : X, z : Z, y : Y ⊢ₑ ⟨x', z⟩) := by sorry
+      have isPB' : IsPullback
+        (x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x, x'⟩, z⟩) (x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x, z⟩, y⟩)
+        (x : X, x' : X, z : Z ⊢ₑ ⟨x, z⟩) (x : X, z : Z, y : Y ⊢ₑ ⟨x, z⟩) := by sorry
+      conv =>
+        enter [1, 2]
+        tactic =>
+          have cow := T.BeckChevalley𝔼' isPB'
+          apply funext_iff.mp at cow
+          simp [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd,
+                ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp] at cow
+          conv at cow =>
+            rhs; enter [2, 2, 1]
+            tactic =>
+              apply T.𝔼_congr
+              simp_proj
+          conv at cow =>
+            enter [2, 1, 1]
+            tactic =>
+              apply T.𝔼_congr
+              simp_proj
+          symm; exact cow _
+      conv =>
+        enter [1, 1, 2]
+        tactic =>
+          have cow := T.BeckChevalley𝔼' isPB
+          apply funext_iff.mp at cow
+          simp [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd,
+                ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp] at cow
+          conv at cow =>
+            rhs; enter [2, 2, 1]
+            tactic =>
+              apply T.𝔼_congr
+              simp_proj
+          conv at cow =>
+            enter [2, 1, 1]
+            tactic =>
+              apply T.𝔼_congr
+              simp_proj
+          symm; exact cow _
+
+      have H : (x : X, x' : X, z : Z ⊢ₕ x = x' ⊓ ∃ y : Y, (f⸨x'⸩ = y ⊓ g⸨y⸩ = z) ⇒ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z))
+             = (x : X, x' : X, z : Z ⊢ₕ ∃ y : Y, (x = x' ⊓ f⸨x'⸩ = y ⊓ g⸨y⸩ = z) ⇒ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z)) := by
+                simp
+                simp_proj
+                conv =>
+                  rhs; enter [1, 2, 1, 1]
+                  rw [←P₁.map_comp]
+                  exact P₁.map_comp_app
+                rw [inf_assoc]
+                conv =>
+                  rhs; enter [1]
+                  exact T.𝔼_frob_right
+                simp
+      simp only [Function.comp_apply, op_tensorObj, Category.assoc, map_inf, ge_iff_le, le_top]
+      simp [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd,
+            ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp] at H
+      conv =>
+        enter [2, 1, 2, 2]
+        conv => enter [1]; tactic => symm; exact P₁.map_comp_app
+        conv => enter [2]; tactic => symm; exact P₁.map_comp_app
+        tactic => simp_proj
+      conv =>
+        enter [2, 2, 2]
+        conv => enter [1]; tactic => symm; exact P₁.map_comp_app
+        conv => enter [2]; tactic => symm; exact P₁.map_comp_app
+        tactic => simp_proj
+      rw [H]
+      simp
+      have weak_f_congrDom : isTop (P₁ (x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x, x'⟩, y⟩) f.congrDomTerm) := by
+        apply P₁.map_isTop
+        exact f.congrDom
+      simp at weak_f_congrDom
+
+
+        -- have H := f.congrDom
+        -- simp at H
+
+      -- let weak_f_congrDomTerm := P₁ (x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x, x'⟩, y⟩) f.congrDomTerm
+      -- have weak_f_congrDom : isTop weak_f_congrDomTerm := by
+      --   exact isTop_le_isTop f.congrDom {
+      --     map := x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x, x'⟩, y⟩
+      --     le := by
+      --       unfold weak_f_congrDomTerm
+      --   }
+        -- unfold isTop
+        -- unfold weak_f_congrDomTerm
+        -- apply ge_iff_le.mpr; trans
+        -- · apply ge_iff_le.mp
+        --   exact f.congrDom
+        -- ·
+      simp [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd,
+            ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp] at H
+
+
+
+      -- -- simp
+      -- have H :
+      --   -- calc
+      --       (x : X, x' : X, z : Z ⊢ₕ x = x' ⊓ ∃ y : Y, (f⸨x'⸩ = y ⊓ g⸨y⸩ = z) ⇒ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z))
+      --     = (x : X, x' : X, z : Z ⊢ₕ ∃ y : Y, (x = x' ⊓ f⸨x'⸩ = y ⊓ g⸨y⸩ = z) ⇒ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z)) := by
+      --         simp
+      --         simp_proj
+      --         conv =>
+      --           rhs; enter [1, 2, 1, 1]
+      --           rw [←P₁.map_comp]
+      --           exact P₁.map_comp_app
+      --         rw [inf_assoc]
+      --         conv =>
+      --           rhs; enter [1]
+      --           exact T.𝔼_frob_right
+      --         simp
+      -- simp_proj_only
+      -- -- apply le_himp_iff.mpr
+      -- rw [H]
+
+
+        -- _  (x : X, x' : X, z : Z ⊢ₕ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z) ⇒ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z)) := by simp_proj
+
+          --     (x : X, x' : X, z : Z ⊢ₕ x = x' ⊓ ∃ y : Y, (f⸨x'⸩ = y ⊓ g⸨y⸩ = z))
+          --   ≤ (x : X, x' : X, z : Z ⊢ₕ ∃ y : Y, (x = x' ⊓ f⸨x⸩ = y ⊓ g⸨y⸩ = z)) := by sorry
+          -- _ ≤ (x : X, x' : X, z : Z ⊢ₕ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z)) := by sorry
+
+      -- have H :=
+      --   calc
+      --     (x : X, x' : X, z : Z ⊢ₕ x = x' ⊓ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z))
+      --       ≤ (x : X, x' : X, z : Z ⊢ₕ ∃ y : Y, (x = x' ⊓ f⸨x⸩ = y ⊓ g⸨y⸩ = z)) := by
+      --         simp_proj
+      --         conv =>
+      --           lhs; tactic => symm; exact T.𝔼_frob_right
+      --         apply (T.𝔼 _).map.monotone
+      --         rw [inf_assoc, ←P₁.map_comp]
+      --         simp_proj_only
+      --         conv => rhs; enter [1]; exact P₁.map_comp_app
+      --         simp
+      --     _ ≤ (x : X, x' : X, z : Z ⊢ₕ ∃ y : Y, (x' = x ⊓ f⸨x⸩ = y ⊓ g⸨y⸩ = z)) := by sorry
+      --     _ ≤ (x : X, x' : X, z : Z ⊢ₕ ∃ y : Y, (f⸨x'⸩ = y ⊓ g⸨y⸩ = z)) := by
+      --       simp_proj
+      --       gcongr
+      --       rw [←P₁.map_comp]
+      --       conv =>
+      --         lhs; enter [1]
+      --         tactic =>
+      --           have cow : (fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst _ _) = (lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst (X ⊗ X) Z)) ((fp.snd ((X ⊗ X) ⊗ Z) Y))) ≫ (fp.fst (X ⊗ X) Y) := by aesop_cat
+      --           have foo : P₁ ((lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst (X ⊗ X) Z)) ((fp.snd ((X ⊗ X) ⊗ Z) Y))) ≫ (fp.fst (X ⊗ X) Y)) ρX.rel = P₁ (lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst (X ⊗ X) Z)) ((fp.snd ((X ⊗ X) ⊗ Z) Y))) (P₁ (fp.fst (X ⊗ X) Y) ρX.rel) := by rw [P₁.map_comp_app]
+      --           trans
+      --           · rw [cow]
+      --           · exact foo
+      --       conv =>
+      --         lhs; enter [2]
+      --         tactic =>
+      --           have cow : lift (((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst _ _)) ≫ (fp.fst _ _)) (fp.snd _ _)
+      --             = (lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst (X ⊗ X) Z)) ((fp.snd ((X ⊗ X) ⊗ Z) Y))) ≫ ((fp.fst _ _) ⊗ 𝟙 _) := by aesop_cat
+      --           have foo : P₁ ((lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst (X ⊗ X) Z)) ((fp.snd ((X ⊗ X) ⊗ Z) Y))) ≫ ((fp.fst _ _) ⊗ 𝟙 _)) f.hom = P₁ (lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst (X ⊗ X) Z)) ((fp.snd ((X ⊗ X) ⊗ Z) Y))) (P₁ ((fp.fst _ _) ⊗ 𝟙 _) f.hom) := by
+      --             conv => rhs; tactic => symm; exact P₁.map_comp_app
+      --           trans
+      --           · rw [cow]
+      --           · exact foo
+      --       conv =>
+      --         rhs
+      --         tactic =>
+      --           have cow : lift (((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst _ _)) ≫ (fp.snd _ _)) (fp.snd _ _)
+      --             = (lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst (X ⊗ X) Z)) ((fp.snd ((X ⊗ X) ⊗ Z) Y))) ≫ ((fp.snd _ _) ⊗ 𝟙 _) := by aesop_cat
+      --           have foo : P₁ ((lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst (X ⊗ X) Z)) ((fp.snd ((X ⊗ X) ⊗ Z) Y))) ≫ ((fp.snd _ _) ⊗ 𝟙 _)) f.hom = P₁ (lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst (X ⊗ X) Z)) ((fp.snd ((X ⊗ X) ⊗ Z) Y))) (P₁ ((fp.snd _ _) ⊗ 𝟙 _) f.hom) := by rw [P₁.map_comp_app]
+      --           trans
+      --           · rw [cow]
+      --           · exact foo
+      --       rw [←P₁.map_inf]
+      --       apply OrderHomClass.GCongr.mono _
+      --       simp
+
+      --       have H := f.congrDom
+      --       simp [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd,
+      --             ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp]
+      --           at H
+      --       simp [Category.assoc] at H
+
+
+      -- sorry
+
+
+
+      -- simp_proj
+      -- simp [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd,
+      --       ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp]
+      --      at H
+
+      -- have isPB : IsPullback ((x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x, x'⟩, z⟩)) (x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x', z⟩, y⟩) (lift ((fp.fst (X ⊗ X) Z) ≫ (fp.snd _ _)) (fp.snd _ _)) (fp.fst _ _) := by sorry
+      -- have isPB' : IsPullback ((x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x, x'⟩, z⟩)) (x : X, x' : X, z : Z, y : Y ⊢ₑ ⟨⟨x, z⟩, y⟩) (lift ((fp.fst (X ⊗ X) Z) ≫ (fp.fst _ _)) (fp.snd _ _)) (fp.fst _ _) := by sorry
+
+      -- conv =>
+      --   lhs; enter [2]
+      --   tactic => symm; exact T.BeckChevalley𝔼 isPB
+      -- conv =>
+      --   rhs
+      --   tactic => symm; exact T.BeckChevalley𝔼 isPB'
+      -- simp_proj
+
+
+      -- conv =>
+      --   rhs; enter [2, 1]
+      --   tactic => symm; exact P₁.map_comp_app
+      -- conv =>
+      --   rhs; enter [2, 2]
+      --   tactic => symm; exact P₁.map_comp_app
+      -- conv =>
+      --   lhs; enter [2, 2, 1]
+      --   tactic => symm; exact P₁.map_comp_app
+      -- conv =>
+      --   lhs; enter [2, 2, 2]
+      --   tactic => symm; exact P₁.map_comp_app
+      -- conv =>
+      --   lhs; enter [2]
+      --   tactic =>
+      --     have H : (lift (lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst _ _) ≫ (fp.fst _ _) ≫ 𝟙 X) ((fp.fst _ _) ≫ (fp.fst _ _) ≫ (fp.snd _ _))) ((fp.fst _ _) ≫ (fp.snd _ _))) = fp.fst _ _ := by simp_proj
+      --     exact T.𝔼_congr_app H
+      -- conv =>
+      --   rhs
+      --   tactic =>
+      --     have H : lift (lift ((fp.fst ((X ⊗ X) ⊗ Z) Y) ≫ (fp.fst _ _) ≫ (fp.fst _ _) ≫ 𝟙 X) ((fp.fst _ _) ≫ (fp.fst _ _) ≫ (fp.snd _ _))) ((fp.fst _ _) ≫ (fp.snd _ _)) = fp.fst _ _ := by simp_proj
+      --     exact T.𝔼_congr_app H
+      -- simp_proj_only
+      -- simp
+      -- simp at H
+
+      -- -- conv at H =>
+      -- --   lhs; enter [2, 1]
+      -- --   tactic =>
+
+      -- -- conv =>
+      -- --   lhs; tactic => symm; exact T.exists_frob_right'
+      -- -- apply (T.𝔼 _).map.monotone
+      -- -- rw [←inf_assoc]
+      -- -- apply inf_le_inf_right
+      -- -- simp_proj
+
+      -- -- -- simp at H
+      -- -- conv at H =>
+      -- --   lhs; tactic => symm; exact T.exists_frob_right'
+      -- -- have H := (T.𝔼 _).adjTo H
+
+
+
+      -- -- apply inf_le_inf_right at H
+
+
+
+    congrCod := sorry
+    unique   := sorry
+    total    := sorry
