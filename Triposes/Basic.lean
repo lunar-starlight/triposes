@@ -8,8 +8,6 @@ import Mathlib.CategoryTheory.Closed.Cartesian
 import Mathlib.CategoryTheory.Types
 import Mathlib.Order.Category.HeytAlg
 
-import Triposes.FPCatDSL2
-
 section Tripos
 
   open CategoryTheory
@@ -35,7 +33,7 @@ section Tripos
   abbrev P₀ := P.obj ∘ .op
   -- def P₁ {X Y : 𝒞} : (f : X ⟶ Y) → P.obj (.op Y) ⟶ P.obj (.op X) := P.map ∘ .op
   def P₁ {X Y : 𝒞} : (f : X ⟶ Y) → P₀ (P := P) Y ⟶ P₀ (P := P) X := P.map ∘ .op
-  notation f "*" => P₁ f
+  -- notation f "*" => P₁ f
 
   @[simp]
   theorem P₁.map_id {X : 𝒞} : P₁ (P := P) (𝟙 X) = HeytingHom.id _ := by

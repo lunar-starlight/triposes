@@ -1,4 +1,5 @@
 import Triposes.Basic
+import Triposes.Language.FPCatDSL2
 
 open CategoryTheory
 open MonoidalCategory
@@ -16,12 +17,12 @@ namespace Language
     -- /- To simplify the definition of `proj`, we use the terminal object of `𝒞` as the default element of `𝒞`. -/
     -- instance : Inhabited 𝒞 where default := 𝟙_ 𝒞
 
-    /-- The product of a list of objects, where we make sure that the product of `[A]` is `A`, rather than `A ⊗ 𝟙_ 𝒞`. -/
-    @[reducible]
-    def listProd : Lean.AssocList Lean.Name 𝒞 → 𝒞
-    | .nil => 𝟙_ 𝒞
-    | .cons _ A .nil => A
-    | .cons _ A As => A ⊗ listProd As
+    -- /-- The product of a list of objects, where we make sure that the product of `[A]` is `A`, rather than `A ⊗ 𝟙_ 𝒞`. -/
+    -- @[reducible]
+    -- def listProd : Lean.AssocList Lean.Name 𝒞 → 𝒞
+    -- | .nil => 𝟙_ 𝒞
+    -- | .cons _ A .nil => A
+    -- | .cons _ A As => A ⊗ listProd As
 
     -- @[simp]
     -- def lookup (As : Lean.AssocList Lean.Name 𝒞) (x : Lean.Name) : 𝒞 := (As.find? x).getD (𝟙_ 𝒞)
@@ -83,36 +84,95 @@ namespace Language
 
     /-- `Formula As` denotes a predicate in `P (listProd As)`.
         It should be easy to add other connectives and quantifiers. -/
-    inductive Formula : Lean.AssocList Lean.Name 𝒞 → Type _ where
+    inductive Formula' : 𝒞 → Type _ where
       /-- Application of a predicate to an expression -/
-      --   | `($Γ:fpcontext ⊢ₕ ⟪ $f:term | $t:fpterm ⟫) => do
-      -- let t ← `($Γ:fpcontext ⊢ₑ $t)
-      -- `(P₁ $t $f)
-    | app : ∀ {B As}, P₀ (P := P) (listProd B) → (listProd As ⟶ listProd B) → Formula As
+    | app : ∀ {B As}, P₀ (P := P) B → (As ⟶ B) → Formula' As
       /-- The true predicate -/
-    | tru : ∀ {As}, Formula As
+    | tru : ∀ {As}, Formula' As
       /-- The false predicate -/
-    | fal : ∀ {As}, Formula As
+    | fal : ∀ {As}, Formula' As
       /-- Conjunction -/
-    | conj : ∀ {As}, Formula As → Formula As → Formula As
+    | conj : ∀ {As}, Formula' As → Formula' As → Formula' As
       /-- Disjunction -/
-    | disj : ∀ {As}, Formula As → Formula As → Formula As
+    | disj : ∀ {As}, Formula' As → Formula' As → Formula' As
       /-- Implication -/
-    | impl : ∀ {As}, Formula As → Formula As → Formula As
+    | impl : ∀ {As}, Formula' As → Formula' As → Formula' As
       /-- Universal quantifier -/
-    | all : ∀ {Bs As}, (listProd Bs ⟶ listProd As) → Formula Bs → Formula As
+    | all : ∀ {Bs As}, (Bs ⟶ As) → Formula' Bs → Formula' As
       /-- Existential quantifier -/
-    | any : ∀ {Bs As}, (listProd Bs ⟶ listProd As) → Formula Bs → Formula As
+    | any : ∀ {Bs As}, (Bs ⟶ As) → Formula' Bs → Formula' As
 
-    def Formula.eval {As : Lean.AssocList Lean.Name 𝒞} : Formula (P := P) As → P₀ (P := P) (listProd As)
+    def Formula'.eval {As : 𝒞} : Formula' (P := P) As → P₀ (P := P) As
     | .app ρ f => P₁ f ρ
     | .tru => ⊤
     | .fal => ⊥
     | .conj φ ψ => eval φ ⊓ eval ψ
     | .disj φ ψ => eval φ ⊔ eval ψ
     | .impl φ ψ => eval φ ⇨ eval ψ
-    | .all f φ => (Tripos.𝔸 f).map (eval φ)
-    | .any f φ => (Tripos.𝔼 f).map (eval φ)
+    | .all f φ => (T.𝔸 f).map (eval φ)
+    | .any f φ => (T.𝔼 f).map (eval φ)
+
+    def Formula_Eq {As : 𝒞} (φ ψ : Formula' (P := P) As) := φ.eval = ψ.eval
+
+    def Formula (As : 𝒞) := Quot (Formula_Eq (As := As) (P := P))
+
+    def ι {As : 𝒞} := Quot.mk (Formula_Eq (As := As) (P := P))
+
+    def Formula.app {B As : 𝒞} (ρ : P₀ (P := P) B) (f : As ⟶ B) : Formula (P := P) As := Quot.mk Formula_Eq (Formula'.app ρ f)
+    def Formula.tru {As : 𝒞} := ι (P := P) (Formula'.tru (As := As))
+    def Formula.fal {As : 𝒞} := ι (P := P) (Formula'.fal (As := As))
+    -- def Formula.conj {As : 𝒞} (φ ψ : Formula As) := Quot.mk Formula_Eq (Formula'.conj φ ψ)
+    -- def Formula.disj {As : 𝒞} (φ ψ : Formula As) := Quot.mk Formula_Eq (Formula'.disj φ ψ)
+    -- def Formula.impl {As : 𝒞} (φ ψ : Formula As) := Quot.mk Formula_Eq (Formula'.impl φ ψ)
+    -- def Formula.all {Bs As : 𝒞} (f : Bs ⟶ As) (φ : Formula (P := P) Bs) := ι (P := P) (Formula'.all f φ)
+    -- def Formula.any {Bs As : 𝒞} (f : Bs ⟶ As) (φ : Formula (P := P) Bs) := ι (P := P) (Formula'.any f φ)
+
+
+    syntax "unfold_quotient" : tactic
+    syntax "formula_unop_cong" : tactic
+    syntax "formula_binop_cong" : tactic
+    macro_rules
+      | `(tactic| unfold_quotient) =>
+        `(tactic| apply Quot.sound; unfold Formula_Eq; unfold Formula'.eval; simp)
+      | `(tactic| formula_binop_cong) =>
+        `(tactic| rintro _ _ _ H; unfold_quotient; rw [H])
+      | `(tactic| formula_unop_cong) =>
+        `(tactic| rintro _ _ H; unfold_quotient; rw [H])
+
+    def Formula.conj {As : 𝒞} :=
+      Quot.lift₂ (r := Formula_Eq) (s := Formula_Eq)
+      (fun φ ↦ ι (P := P) ∘ (Formula'.conj (As := As) φ))
+      (by formula_binop_cong)
+      (by formula_binop_cong)
+
+    def Formula.disj {As : 𝒞} :=
+      Quot.lift₂ (r := Formula_Eq) (s := Formula_Eq)
+      (fun φ ↦ ι (P := P) ∘ (Formula'.disj (As := As) φ))
+      (by formula_binop_cong)
+      (by formula_binop_cong)
+
+    def Formula.impl {As : 𝒞} :=
+      Quot.lift₂ (r := Formula_Eq) (s := Formula_Eq)
+      (fun φ ↦ ι (P := P) ∘ (Formula'.impl (As := As) φ))
+      (by formula_binop_cong)
+      (by formula_binop_cong)
+
+    def Formula.all {Bs As : 𝒞} (f : As ⟶ Bs) :=
+      Quot.lift (r := Formula_Eq) (ι (P := P) ∘ Formula'.all f)
+      (by formula_unop_cong)
+
+    def Formula.any {Bs As : 𝒞} (f : As ⟶ Bs) :=
+      Quot.lift (r := Formula_Eq) (ι (P := P) ∘ Formula'.any f)
+      (by formula_unop_cong)
+
+    @[reducible]
+    def Formula.eval' {As : 𝒞} :=
+      Quot.lift (r := Formula_Eq) (Formula'.eval (As := As) (P := P)) (by
+          rintro _ _ H
+          exact H
+        )
+    def Formula.eval {As : 𝒞} (φ : Formula (P := P) As) : P₀ (P := P) As := Formula.eval' φ
+
   end Structure
 
   section Syntax
@@ -208,8 +268,50 @@ namespace Language
     | `($jdgs:typing_judgement,* ⊢ₕ ∃ $y:ident : $Y:term , $t:fpformula) => do
       let t ← `($jdgs:typing_judgement,* , $y:ident : $Y:term  ⊢ₕ $t)
       `(Formula.any (ChosenFiniteProducts.fst _ _) $t)
-    | `($Γ:fpcontext ⊢ₕ ($t:fpformula)) => `(Formula.eval ($Γ:fpcontext ⊢ₕ $t))
-    | `($Γ:fpcontext ⊢ $t:fpformula) => `((Formula.eval (T := by infer_instance) ($Γ:fpcontext ⊢ₕ $t)) ≥ ⊤)
+    | `($Γ:fpcontext ⊢ₕ ($t:fpformula)) => `($Γ:fpcontext ⊢ₕ $t)
+    | `($Γ:fpcontext ⊢ $t:fpformula) => `(⊤ ≤ (Formula.eval (T := by infer_instance) ($Γ:fpcontext ⊢ₕ $t)))
+
+
+    namespace Delab
+      open PrettyPrinter
+
+      local syntax term "*" : term
+      @[app_unexpander Formula'.app]
+      def unexpFormula_app : Unexpander
+        | `($_app $t $f) => `(($f*) $t)
+        | `($_app) => pure $ mkIdent `app
+      @[app_unexpander Formula'.conj]
+      def unexpFormula_conj : Unexpander
+        | `($_conj $X $Y) => `($X ⊓ $Y)
+        | `($_conj) => pure $ mkIdent `conj
+      @[app_unexpander Formula'.disj]
+      def unexpFormula_disj : Unexpander
+        | `($_disj $X $Y) => `($X ⊔ $Y)
+        | `($_disj) => pure $ mkIdent `disj
+      @[app_unexpander Formula'.impl]
+      def unexpFormula_impl : Unexpander
+        | `($_impl $X $Y) => `($X ⇨ $Y)
+        | `($_impl) => pure $ mkIdent `impl
+      @[app_unexpander Formula'.tru]
+      def unexpFormula_tru : Unexpander
+        | `($_tru) => `(⊤)
+      @[app_unexpander Formula'.fal]
+      def unexpFormula_fal : Unexpander
+        | `($_fal) => `(⊥)
+
+      @[app_unexpander ChosenFiniteProducts.fst]
+      def unexpFpFst : Unexpander
+        | `($_fst $X $Y) => `([$X]⊗$Y)
+        | `($_fst) => pure $ mkIdent `fst
+      @[app_unexpander ChosenFiniteProducts.snd]
+      def unexpFpSnd : Unexpander
+        | `($_snd $X $Y) => `($X⊗[$Y])
+        | `($_snd) => pure $ mkIdent `snd
+      @[app_unexpander P₁]
+      def unexpP₁ : Unexpander
+        | `($_ $f) => `($f *)
+        | `($_) => `(P₁)
+   end Delab
 
   end Syntax
 
