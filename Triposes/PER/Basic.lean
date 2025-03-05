@@ -1,4 +1,5 @@
-import Triposes.Language
+import Triposes.Language.Basic
+import Triposes.Language.Properties
 
 open Language
 open CategoryTheory
@@ -17,7 +18,8 @@ section PERdef
 
   class PER (X : 𝒞) where
     rel   : P₀ (P := P) (X ⊗ X)
-    sym   : a : X, b : X        ⊢ ⟪rel | ⟨a, b⟩⟫ ⇒ ⟪rel | ⟨b, a⟩⟫
+    sym   : a : X, b : X        ⊢ a =[rel] b ⇒ b =[rel] a
+    -- sym   : a : X, b : X        ⊢ ⟪rel | ⟨a, b⟩⟫ ⇒ ⟪rel | ⟨b, a⟩⟫
     trans : a : X, b : X, c : X ⊢ a =[rel] b ⊓ b =[rel] c ⇒ a =[rel] c
 end PERdef
 
@@ -50,7 +52,6 @@ namespace Language
     `($Γ:fpcontext ⊢ₕ ⟪ PERHom.hom (self := $hom) | ⟨$x, $y⟩⟫)
 end Language
 
-
 namespace PERHom
   variable {X Y Z : 𝒞} {ρX : PER (P := P) X} {ρY : PER (P := P) Y} {ρZ : PER (P := P) Z}
 
@@ -68,16 +69,12 @@ namespace PERHom
   def totalTerm_mpr (f : PERHom ρX ρY) := x : X ⊢ₕ ∃ y : Y , f⸨x⸩ = y ⇒ x = x
   @[reducible]
   def total_mp      (f : PERHom ρX ρY) : x : X ⊢ x = x ⇒ ∃ y : Y , f⸨x⸩ = y := by
-    let total := f.total
-    simp at total
-    simp
-    rw [total]
+    have ⟨total_mp, _⟩ := le_inf_iff.mp f.total
+    exact total_mp
   @[reducible]
   def total_mpr     (f : PERHom ρX ρY) : x : X ⊢ (∃ y : Y , f⸨x⸩ = y) ⇒ x = x := by
-    let total := f.total
-    simp at total
-    simp
-    rw [total]
+    have ⟨_, total_mpr⟩ := le_inf_iff.mp f.total
+    exact total_mpr
 end PERHom
 
 
@@ -99,42 +96,12 @@ section PERLemata
       apply isTop_le_isTop H
       exact forall_le (𝔸 := T.𝔸 f)
 
-  open Lean PrettyPrinter Delaborator SubExpr
-
-  @[app_unexpander ChosenFiniteProducts.fst]
-  def unexpFpFst : Unexpander
-    | `($_fst $X $Y) => `([$X]⊗$Y)
-    | `($_fst) => pure $ mkIdent `fst
-  @[app_unexpander ChosenFiniteProducts.snd]
-  def unexpFpSnd : Unexpander
-    | `($_snd $X $Y) => `($X⊗[$Y])
-    | `($_snd) => pure $ mkIdent `snd
-  @[app_unexpander P₁]
-  def unexpP₁ : Unexpander
-    | `($_ $f) => `($f *)
-    | `($_) => `(P₁)
-
   omit ccc in theorem lift_diag {f : X ⟶ Y} : lift f f = f ≫ diag := by unfold diag; aesop_cat
   omit ccc in theorem lift_snd_fst : lift (fp.snd X Y) (fp.fst X Y) = twist := by unfold twist; aesop_cat
   omit ccc in theorem comp_lift_left {f : X ⟶ Y} {g : Y ⟶ Z} : lift (f ≫ g) f = f ≫ lift g (𝟙 _) := by aesop_cat
   omit ccc in theorem comp_lift_right {f : X ⟶ Y} {g : Y ⟶ Z} : lift f (f ≫ g) = f ≫ lift (𝟙 _) g := by aesop_cat
   omit ccc in theorem lift_comp_fst_comp_snd {f : X ⟶ Y ⊗ Z} : lift (f ≫ fp.fst _ _) (f ≫ fp.snd _ _) = f := by aesop_cat
 
-  omit ccc in theorem PERHom.map_le_extent_dom (f: PERHom (T := T) ρX ρY)
-    : isTop (x : X, y : Y ⊢ₕ f⸨x⸩ = y ⇒ x = x) := by
-    apply (isTop_iff_forall_isTop (x : X, y : Y ⊢ₑ x)).mpr
-    conv =>
-      enter [1, 2]
-      rhs
-      tactic =>
-        have H : «fst» X Y = «fst» X Y ≫ 𝟙 _ := by aesop_cat
-        rw [H, ←comp_lift]
-    rw [P₁.map_comp_app, T.frobenius]
-    have cow := f.total_mpr
-    simp
-    rw [Category.comp_id]
-    simp at cow
-    exact cow
 
   syntax "simp_proj" : tactic
   syntax "simp_proj_only" : tactic
@@ -147,6 +114,34 @@ section PERLemata
       `(tactic| simp
         [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd,
         ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp])
+
+
+  omit fp ccc in
+  -- @[simp]
+  theorem map_comp_app {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} {z : P₀ (P := P) Z} : Formula.app z (f ≫ g) = Formula.app (P₁ g z) f := by
+    unfold_quotient
+    aesop_cat
+
+  omit ccc in
+  theorem PERHom.map_le_extent_dom (f: PERHom (T := T) ρX ρY)
+    : x : X, y : Y ⊢ f⸨x⸩ = y ⇒ x = x := by
+    apply (isTop_iff_forall_isTop (x : X, y : Y ⊢ₑ x)).mpr
+    simp_proj
+    conv =>
+      enter [1, 2, 1, 2]
+      rw [map_comp_app (P := P)]
+    simp [T.𝔸_congr_app]
+
+    conv =>
+      enter [1]
+      tactic =>
+        apply T.𝔸_congr_app
+        simp
+    rw [T.frobenius]
+    have cow := f.total_mpr
+    simp at cow
+    repeat unfold Formula.eval at cow
+    exact cow
 
   omit ccc in theorem PERHom.map_le_extent_cod (f: PERHom (T := T) ρX ρY)
     : x : X, y : Y ⊢ f⸨x⸩ = y ⇒ y = y := by
@@ -169,7 +164,7 @@ section PERLemata
     exact this
 
   def PERHomComp (g : PERHom ρY ρZ) (f : PERHom ρX ρY) : PERHom ρX ρZ where
-    hom := x : X, z : Z ⊢ₕ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z)
+    hom := (x : X, z : Z ⊢ₕ ∃ y : Y, (f⸨x⸩ = y ⊓ g⸨y⸩ = z)).eval
     congrDom := by
       simp_proj_only
       have isPB : IsPullback
