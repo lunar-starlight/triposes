@@ -250,7 +250,7 @@ section Tripos
 
   end Adjoints
 
-  class HasGeneric where
+  class ChosenGeneric where
     𝕊 : 𝒞
     σ : P₀ (P := P) 𝕊
     bracket : ∀ {X : 𝒞} (_ : P₀ X), X ⟶ 𝕊
@@ -258,7 +258,7 @@ section Tripos
 
   variable [fp : ChosenFiniteProducts 𝒞] [ccc : CartesianClosed 𝒞]
 
-  class Tripos (P : 𝒞ᵒᵖ ⥤ HeytAlg) where
+  class Tripos (P : 𝒞ᵒᵖ ⥤ HeytAlg) extends ChosenGeneric (P := P) where
     𝔼 : ∀ {X Y : 𝒞} (f : X ⟶ Y), LeftAdjoint (P := P) f
     𝔸 : ∀ {X Y : 𝒞} (f : X ⟶ Y), RightAdjoint (P := P) f
 
