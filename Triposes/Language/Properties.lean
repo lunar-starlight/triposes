@@ -123,6 +123,17 @@ namespace Any
     rw [Formula.conj_comm, Formula.conj_comm β]
     exact frob_left
 
+  section BC
+    variable {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W}
+
+    def BeckChevalley : IsPullback f g h k → ∀ {z : Formula (P := P) Z}, Formula.any f (z.app g) = (Formula.any k z).app h := by
+      rintro isPB z
+      apply z.ind
+      intros
+      unfold_quotient
+      unfold Formula'.eval
+      apply T.𝔼_BeckChevalley isPB
+  end BC
 end Any
 
 namespace All
@@ -181,6 +192,17 @@ namespace All
   --   rw [Formula.disj_comm, Formula.disj_comm β]
   --   exact frob_left
 
+  section BC
+    variable {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W}
+
+    def BeckChevalley : IsPullback f g h k → ∀ {z : Formula (P := P) Z}, Formula.all f (z.app g) = (Formula.all k z).app h := by
+      rintro isPB z
+      apply z.ind
+      intros
+      unfold_quotient
+      unfold Formula'.eval
+      apply T.𝔸_BeckChevalley isPB
+  end BC
 end All
 
 section Adjoints
