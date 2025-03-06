@@ -116,12 +116,6 @@ section PERLemata
         ←Category.assoc, Category.id_comp, Category.comp_id, ←P₁.map_comp_app, P₁.map_inf, P₁.map_sup, P₁.map_himp])
 
 
-  omit fp ccc in
-  -- @[simp]
-  theorem map_comp_app {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} {z : P₀ (P := P) Z} : Formula.app z (f ≫ g) = Formula.app (P₁ g z) f := by
-    unfold_quotient
-    aesop_cat
-
   omit ccc in
   theorem PERHom.map_le_extent_dom (f: PERHom (T := T) ρX ρY)
     : x : X, y : Y ⊢ f⸨x⸩ = y ⇒ x = x := by
