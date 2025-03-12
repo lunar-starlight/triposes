@@ -42,7 +42,7 @@ section ProjDSL
 
   /-- Convert a context `x₁ : X₁, …, xₙ : Xₙ` to the term `X₁ ⊗ ⋯ ⊗ Xₙ`,
       making sure that the empty context is the terminal object `𝟙_ _` and
-      that `x : X` is just `X`, rather than `X ⊗ 𝟙_ 𝒞`.
+      that `x : X` is just `X`, rather than `𝟙_ 𝒞 ⊗ X`.
   -/
   partial def prodify : TSyntax `fpcontext → MacroM Term
   | `(fpcontext| ) => `(𝟙_ _)
