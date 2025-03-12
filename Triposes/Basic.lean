@@ -19,8 +19,6 @@ section Tripos
 
   variable {P : 𝒞ᵒᵖ ⥤ HeytAlg}
 
-  -- instance {X Y} [HeytingAlgebra X] [HeytingAlgebra Y] {f : HeytingHom X Y} : Monotone f := by infer_instance
-  -- @[coe]
   def HeytingHom.toOrderHom {X Y : Type} [HeytingAlgebra X] [HeytingAlgebra Y] (f : HeytingHom X Y) : OrderHom X Y := f
   def HeytingHom.monotone {X Y : Type} [HeytingAlgebra X] [HeytingAlgebra Y] (f : HeytingHom X Y) : Monotone f := by
     rintro a b a_le_b
@@ -30,7 +28,14 @@ section Tripos
   def HeytingHom.map_top' {X Y : Type} [HeytingAlgebra X] [HeytingAlgebra Y] (f : HeytingHom X Y) : f ⊤ = ⊤ := by simp only [map_top]
 
   /- Helper functions to call P on unopped stuff -/
-  abbrev P₀ := P.obj ∘ .op
+  abbrev P₀ (X : 𝒞) := P.obj (.op X)
+  instance {X : 𝒞} : HeytingAlgebra (P₀ (P := P) X) where
+    himp_bot := by simp
+  instance {X : 𝒞} : Preorder (P₀ (P := P) X) where
+    le_refl := le_refl
+    le_trans _ _ _ := le_trans
+    lt_iff_le_not_le _ _ := lt_iff_le_not_le
+
   -- def P₁ {X Y : 𝒞} : (f : X ⟶ Y) → P.obj (.op Y) ⟶ P.obj (.op X) := P.map ∘ .op
   def P₁ {X Y : 𝒞} : (f : X ⟶ Y) → P₀ (P := P) Y ⟶ P₀ (P := P) X := P.map ∘ .op
   -- notation f "*" => P₁ f
@@ -258,7 +263,8 @@ section Tripos
 
   variable [fp : ChosenFiniteProducts 𝒞] [ccc : CartesianClosed 𝒞]
 
-  class Tripos (P : 𝒞ᵒᵖ ⥤ HeytAlg) extends ChosenGeneric (P := P) where
+  variable (P) in
+  class Tripos extends ChosenGeneric (P := P) where
     𝔼 : ∀ {X Y : 𝒞} (f : X ⟶ Y), LeftAdjoint (P := P) f
     𝔸 : ∀ {X Y : 𝒞} (f : X ⟶ Y), RightAdjoint (P := P) f
 
