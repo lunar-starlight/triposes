@@ -1,60 +1,289 @@
+\thesection{0}
+\section{Notation}
+Let \(\C\) be a cartesian-closed category and \(P : \C^\op → \ha\) a functor between poset-enriched categories.
+Also, we will call objects of \(\C\) \emph{types}.
+We also fix a \emph{choice} of finite products and exponents in \(\C\).
+
 \section{Definition of a tripos}
 
-\begin{definition}[Type-Tripos]
-    A \emph{Type-tripos} is a functor \(P : \ty^\op \to \ha\) between poset-enriched categories \(\ty\) of types and \(\ha\) of heyting algebras, that further satisfies the following:
+\begin{definition}[Tripos]
+    A functor \(P\) is a \emph{tripos} when it satisfies the following:
     \begin{enumerate}
-        \item For each types \(X\) and \(Y\), and \(f : X \to Y\) the map \(Pf\) has monotone left and right adjoints, \(\exists_f\) and \(\forall_f\) respectively
-        \item These further satisfy the Beck-Chevalley condition
-        %\item For each type \(X\) there is a type \(\pi(X)\) and an element \(\in_X \in P(X\prod\pi(X))\) satisfying ...
-        \item There is a type \(\Sigma\) and an element \(\sigma \in P(\Sigma)\) such that for every type \(X\) and every \(\phi \in P(X)\) there is a morphism \([\phi] : X \to \Sigma\) such that \(\phi = P([\phi])(\sigma)\)
+        \item For all types \(X\) and \(Y\) and maps \(f : X → Y\), the map \(Pf\) has monotone left and right adjoints, \(∃_f\) and \(∀_f\) respectively
+        \item These further satisfy the Beck-Chevalley condition:
+        If % https://q.uiver.app/#q=WzAsNCxbMCwwLCJYIl0sWzEsMCwiWSJdLFsxLDEsIlciXSxbMCwxLCJaIl0sWzAsMSwiZiJdLFsxLDIsImgiXSxbMCwzLCJnIiwyXSxbMywyLCJrIiwyXV0=
+        \[\begin{tikzcd}
+            X \ & Y \\
+            Z \ & W
+            \arrow["f", from=1-1, to=1-2]
+            \arrow["g"', from=1-1, to=2-1]
+            \arrow["h", from=1-2, to=2-2]
+            \arrow["k"', from=2-1, to=2-2]
+        \end{tikzcd}\]
+        is a pullback square then \(∀_f ∘Pg = Ph ∘∀_k\)
+        %\item For each type \(X\) there is a type \(π(X)\) and an element \(\in_X ∈ P(X\prodπ(X))\) satisfying ...
+        \item There is a type \(\Sigma\) and an element \(\sigma ∈ P(\Sigma)\) such that for every object \(X\) and every \(φ ∈ P(X)\) there is a morphism \([φ] : X → \Sigma\) such that \(φ = P([φ])(\sigma)\)
     \end{enumerate}
 \end{definition}
 
-How to implement this is not at all clear. I think most of the work will actually go into defining this.
+\section{Definition of a tripos language}
+
+A \emph{context} is a list of pairs of variables and objects of \(\C\).
+We write it like \(x₁ : X₁,… , xₙ : Xₙ\), where \(xᵢ\) are some variables and \(Xᵢ\) some types.
+
+Let \(Γ = x₁ : X₁,… , xₙ : Xₙ\) be an arbitrary context.
+
+Terms of type \(X\) in context \(Γ\) are
+\begin{itemize}
+    \item variables \(xᵢ\),
+    \item the unique element of the terminal type \(\texttt{tt}\),
+    \item ordered pairs \(⟨a, b⟩\), where \(a\) and \(b\) are also terms in context \(Γ\),
+    \item the first and second pojections of terms \(\texttt{fst}\) and \(\texttt{snd}\), or
+    \item terms \(f(t)\), where \(t\) is a term of type \(Y\) in context \(Γ\) and \(f : Y → X\) a morphism.
+\end{itemize}
+
+Write \(Γ ⊢_t t\) to mean ``the term \(t\) in context \(Γ\)''.
+
+We can define the evaluation of terms of type \(X\) in context \(Γ\) to morphisms \(X₁×\dots× Xₙ → X\):
+\begin{itemize}
+    \item \(Γ ⊢_t xᵢ \Downarrow πᵢ\), where \(πᵢ\) is the projection from \(X₁×\dots× Xₙ\) ommitting the \(i\)-th component,
+    \item \(Γ ⊢_t \texttt{tt} \Downarrow !_{X₁×\dots× Xₙ}\),
+    \item \(Γ ⊢_t ⟨a, b⟩ ↝ ⟨Γ ⊢_t a, Γ ⊢_t b⟩\), where \(⟨⟩\) on the right-hand side is the pairing function in \(\C\),
+    \item \(Γ ⊢_t \texttt{fst} \Downarrow π\) and \(Γ ⊢_t \texttt{snd} \Downarrow π'\), where \(π\) and \(π'\) are the first and second projections in \(\C\) respectively, and
+    \item \(Γ ⊢_t f(t) ↝ f∘(Γ ⊢_t t)\).
+\end{itemize}
+
+Formulas of type \(X\) in context \(Γ\) are
+\begin{itemize}
+    \item \(R(t)\), where \(t\) is a term of type \(Y\) in context \(Γ\) and \(R ∈ P(Y)\),
+    \item one of the usual Heyting algebra formers, or
+    \item the quantifiers \(∃ x : X,\ φ\) and \(∀ x : X,\ φ\), where \(φ\) is a formula.
+\end{itemize}
+
+Write \(Γ ⊢_f t\) to mean ``the formula \(t\) in context \(Γ\)''.
+
+Again we can define the evaluation of formulas in context \(Γ\) to elements of Heyting algebras:
+\begin{itemize}
+    \item \(Γ ⊢_f R(t) \Downarrow P(t)(R)\),
+    \item the Heyting algebra formers get evaluated to themselves in the obvious way,
+    \item if \(x\) is a free variable in \(φ\) then \(Γ ⊢_f Q x : X,\ φ \Downarrow Q_f (Γ, x : X ⊢_f φ)\), where \(Q\) is a quantifier, and
+    \item if \(x\) is not a free variable in \(φ\) then \(Γ ⊢_f Q x : X,\ φ \Downarrow Q_π(π^*(Γ, x : X ⊢_f φ))\), where \(Q\) is a quantifier.
+\end{itemize}
+
+Also, let \(P(Γ)\) mean the same as \(P(X₁,…,Xₙ)\).
+
+Note: due to implementation issues, there is an intermediary type of formulas, defined inductively with the above constructions, quotiented with equivalence up to evaluation by the above rules. This gives us a type equivalent to the Heyting algebras \(P(X)\), but it behaves much better with rewriting in Lean.
+
+\begin{definition}[Truth]
+    We call a formula \(φ\) in context \(Γ\) \emph{true} when it evaluates to the top element of \(P(Γ)\). We denote this by \(Γ ⊢ φ\).
+\end{definition}
+
+\begin{lemma}[Characterization of implication]
+    Showing \(Γ ⊢ φ ⇒ ψ\) is equivalent to showing \((Γ ⊢_f φ) ≤ (Γ ⊢_f ψ)\).
+\end{lemma}
+\begin{proof}
+    The expression \(Γ ⊢ φ ⇒ ψ\) is defined to be \(⊤ = (Γ ⊢_f φ ⇒ ψ) = (Γ ⊢_f φ) ⇒ (Γ ⊢_f ψ)\).
+    Equality with \(⊤\) is the same as being greater than \(⊤\). Now using that \(⊓\) is left adjoint to \(⇒\) we get \((Γ ⊢_f φ) ≤ (Γ ⊢_f ψ)\).
+\end{proof}
+
+
+% We define the inductive type of terms over the hayting algebra \(P X\). We think of this as terms in the context \(X\). It is defined by the following constructors:
+% \[
+%     \begin{prooftree}
+%           \hypo{t ∈ P X}
+%         \infer1{\iota t : \formula X}
+%     \end{prooftree}
+%     \begin{prooftree}
+%           \hypo{f : X → Y}
+%           \hypo{φ : \formula Y}
+%         \infer2{\app f φ : \formula X}
+%     \end{prooftree}
+%     \begin{prooftree}
+%           \hypo{}
+%         \infer1{\tru : \formula X}
+%     \end{prooftree}
+%     \begin{prooftree}
+%           \hypo{}
+%         \infer1{\fal : \formula X}
+%     \end{prooftree}
+%     \begin{prooftree}
+%           \hypo{φ : \formula X}
+%           \hypo{ψ : \formula X}
+%         \infer2{\conj φ ψ : \formula X}
+%     \end{prooftree}
+%     \begin{prooftree}
+%           \hypo{φ : \formula X}
+%           \hypo{ψ : \formula X}
+%         \infer2{\disj φ ψ : \formula X}
+%     \end{prooftree}
+%     \begin{prooftree}
+%           \hypo{φ : \formula X}
+%           \hypo{ψ : \formula X}
+%         \infer2{\impl φ ψ : \formula X}
+%     \end{prooftree}
+%     \begin{prooftree}
+%           \hypo{f : Y → X}
+%           \hypo{φ : \formula Y}
+%         \infer2{\all f φ : \formula X}
+%     \end{prooftree}
+%     \begin{prooftree}
+%           \hypo{f : Y → X}
+%           \hypo{φ : \formula Y}
+%         \infer2{\any f φ : \formula X}
+%     \end{prooftree}
+% \]
+
+% On this we define evaluation to \(P X\) inductivelly in the obvious way.
+% Note that the \(\iota\) constructor evaluates to it's argument and \(\app f\) evaluates to \(P f\).
+
+% Finally we take a quotient with equality up to evaluation.
+% This makes our type into a Heyting algebra (it's actually equivalent to \(P X\)).
+
+% Now we say a term of \(\formula X\) is ``true'' when it is equal to \(\tru\) (aka when it evaluates to \(→p\) in \(P X\)).
+
+% \subsection{Language of elements}
+
+% We now define an internal language, in which we essentially have native access to ``elements'' of type \(X\) (which we think of as elements of \(P X\)).
+
+% \(\mathcal{L}\)-terms of type \(X\) are
+% \begin{enumerate}
+%     \item variables or
+%     \item \(f(t₁,\dots,tₙ)\), given \(\mathcal{L}\)-terms \(tᵢ\) of type \(Xᵢ\) and a morphism \(f : X₁×\dots× Xₙ → X\),
+% \end{enumerate}
+% and \(\mathcal{L}\)-formulas of type \(X\) are
+% \begin{enumerate}
+%     \item one of the usual Heyting algebra formers,
+%     \item \(R(t₁,\dots,tₙ)\), given \(\mathcal{L}\)-terms \(tᵢ\) of type \(Xᵢ\) and a relation \(R ∈ P(X₁×\dots× Xₙ)\), or
+%     \item the quantifiers \(∃ x φ\) and \(∀ x φ\), where \(φ\) is an \(\mathcal{L}\)-formula.
+% \end{enumerate}
+
+% Now we can define the evaluation of \(\mathcal{L}\)-formulas of type \(X\) to elements of \(P X\), by directly translating the above construct to those of formulas of type \(X\). Thus from now on, we just call these formulas (of type \(X\)).
+
+% Note: the quantifiers are interpreted as \(\all π φ\), where \(π\) is the appropriate projection (ommitting the variable we are quantifying over).
+
+% Note: all of these constructs are relative to a choice of finite products.
 
 \section{Definition of a partial equivalence relation}
 
 \begin{definition}
-    A \emph{partial equivalence relation} on a type \(X\) over a Type-tripos \(P\) is a map \([-=-]: X×X → P(X)\) that satisfies
+    A \emph{partial equivalence relation} (PER) on the type \(X\) over a tripos \(P\) is an element \(ρ_X ∈ P(X × X)\) that satisfies
     \begin{enumerate}
-        \item \([a=b] ≤ [b=a]\)
-        \item \([a=b]∧[b=c] ≤ [a=c]\)
+        \item \(x : X, y : X ⊢ ρ_X(x,y) ⇒ ρ_X(y,x)\)
+        \item \(x : X, y : X, z : Z ⊢ ρ_X(x,y) ⊓ ρ_X(y,z) ⇒ ρ_X(x,z)\)
     \end{enumerate}
 \end{definition}
 
-In ``the internal language'' the first condition is symmetry and the second is transitivity. So a partial equivalence relation over \(P\) is a ``symmetric transitive relation internal to some language in \(P\)''.
+The first condition is called \emph{symmerty} and the second \emph{transitivity}, so a PER indeed a partial equivalence relation in the internal language.
+
+From now on we will write \(x =_X y\) to mean \(ρ_X(x,y)\), ommitting the subscript where the underlying type is obvious.
 
 \begin{definition}
-    A morphism between types \(X\) and \(Y\) along with PERs \([-=_X-]\) and \([-=_Y-]\) over \(P\) is a map \([f(-)=-] : X×Y → P(Y)\) such that
+    A morphism between PER's \(ρ_X\) and \(ρ_Y\) over \(P\) is an element \(f : P(X × Y)\) that satisfies
     \begin{enumerate}
-        \item \([a=_Xa']∧[f(a')=b]≤ [f(a) = b]\)
-        \item \([f(a) = b]∧[b=_Yb'] ≤ [f(a) = b']\)
-        \item \([f(a)=b]∧[f(a)=b'] ≤ [b=_Yb']\)
-        \item \([a=_Xa] ≤ ∃_{π} [f(a) = b]\)
+        \item \(x : X, x' : X, y : Y ⊢ x = x'  ⊓ f(x', y) ⇒ f(x, y)\)
+        \item \(x : X, y : Y, y' : Y ⊢ f(x, y) ⊓ y = y'   ⇒ f(x, y')\)
+        \item \(x : X, y : Y, y' : Y ⊢ f(x, y) ⊓ f(x, y') ⇒ y = y'\)
+        \item \(x : X                ⊢ x = x              ⇒ ∃ y : Y,\ f(x, y)\)
     \end{enumerate}
 \end{definition}
 
 \begin{remark}
-    The \(π\) in the fourth condition is the projection map \(X×Y → Y\).
+    Again, we will write \(f(x) = y\) to mean \(f(x, y)\).
+    We will also write \(f : ρ_X → ρ_Y\) to mean ``a morphism \(f\) betweens PER's \(ρ_X\) and \(ρ_Y\)''.
 \end{remark}
 
-Again, the first two properties here are coherences with the PERs on the domain and codomain, and the other two are uniqueness and totality of a relation. So functions are defined as ``functional relations internal to \(P\)''.
+The first two properties here say the morphism is coherent with the PERs on the domain and codomain, and the other two are \emph{uniqueness} and \emph{totality} of a relation. So morphisms are defined as ``functional relations internal to \(P\)''.
+
+\newtheorem{construction}{Construction}
+
+\begin{construction}
+    Let \(f : ρ_X → ρ_Y\) and \(g : ρ_Y → ρ_Z\) be PER morphisms. Their composite is defined to be the composte of relations in the internal language, in other words
+    \[g∘f \coloneq x : X, z : Z ⊢_f ∃ y : Y,\ f(x) = y ⊓ g(y) = z\text.\]
+\end{construction}
+\begin{proof}
+    Had we shown a soundness theorem, we could just say ``it is constructively true that the composition of functional relations is a functional relation'', and be done with the proof. Nonetheless, the proof itself is relatively straight-forward.
+
+    To save space we will ommit the context in the following derivations. Also, to avoid ambiguity, we will denote eqality in a Heyting algebra using \(≡\).
+    \begin{align*}
+        x = x' ⊓ g∘f(x') = z
+        ≡\ & x = x' ⊓ ∃ y : Y,\ f(x') = y ⊓ g(y) = z\\
+        ≡\ & ∃ y : Y,\ x = x' ⊓ f(x') = y ⊓ g(y) = z\\
+        ≤\ & ∃ y : Y,\ f(x) = y ⊓ g(y) = z\\
+        ≡\ & g∘f(x) = z
+    \end{align*}
+    \begin{align*}
+        g∘f(x) = z ⊓ z = z'
+        ≡\ & ∃ y : Y,\ f(x) = y ⊓ g(y) = z ⊓ z = z'\\
+        ≤\ & ∃ y : Y,\ f(x) = y ⊓ g(y) = z'\\
+        ≡\ & g∘f(x) = z'
+    \end{align*}
+    \begin{align*}
+        g∘f(x) = z ⊓ g∘f(x) = z'
+        ≡\ & ∃ y : Y,\ f(x) = y ⊓ g(y) = z ⊓ ∃ y' : Y,\ f(x) = y' ⊓ g(y') = z'\\
+        ≤\ & ∃ y : Y,\ y' : Y,\ f(x) = y ⊓ g(y) = z ⊓ f(x) = y' ⊓ g(y') = z'\\
+        ≡\ & ∃ y : Y,\ y' : Y,\ g(y) = z ⊓ f(x) = y ⊓ f(x) = y' ⊓ g(y') = z'\\
+        ≤\ & ∃ y : Y,\ y' : Y,\ g(y) = z ⊓ y = y' ⊓ g(y') = z'\\
+        ≤\ & ∃ y : Y,\ y' : Y,\ g(y) = z ⊓ g(y) = z'\\
+        ≤\ & ∃ y : Y,\ z = z'\\
+        ≡\ & z = z'\\
+    \end{align*}
+    \begin{align*}
+        x = x
+        ≤\ & ∃ y : Y,\ f(x) = y\\
+        ≡\ & ∃ y : Y,\ f(x) = y ⊓ y = y\\
+        ≤\ & ∃ y : Y,\ f(x) = y ⊓ ∃ z : Z,\ g(y) = z\\
+        ≡\ & ∃ z : Z,\ ∃ y : Y,\ f(x) = y ⊓ g(y) = z\\
+        ≡\ & ∃ z : Z,\ g∘f(x) = z\\
+    \end{align*}
+\end{proof}
+
+\begin{construction}
+    The identity morphism on \(ρX\) is \(ρX\) itself.
+\end{construction}
+\begin{proof}
+    In this proof we break convention and will use letters \(a\), \(b\),…\ to denote elements of \(X\).
+
+    \begin{align*}
+        a = b ⊓ ρX(b) = c
+        ≡\ & a = b ⊓ b = c\\
+        ≡\ & a = c\\
+        ≡\ & ρX(a) = c
+    \end{align*}
+    \begin{align*}
+        ρX(a) = b ⊓ b = c
+        ≡\ & a = b ⊓ b = c\\
+        ≤\ & a = c\\
+        ≡\ & ρX(a) = c
+    \end{align*}
+    \begin{align*}
+        ρX(a) = b ⊓ ρX(a) = c
+        ≡\ & a = b ⊓ a = c\\
+        ≡\ & b = a ⊓ a = c\\
+        ≤\ & b = c
+    \end{align*}
+    The last property to show \(ρX\) is a PER morphism, \(a = a ≤ ∃ b : X,\ ρX(a) = b\), is somewhat tricky to prove using just the internal language, so we need to annotate a few things.
+
+    The LHS is actually \(δ^*ρX\) and the RHS is \(∃_π ρX\), where \(δ : X → X×X\) is the diagonal morphism and \(π : X×X → X\) the fist projection.
+
+    So we wish to show \(δ^*ρX ≤ ∃_π ρX\). By the \(f^* \dashv ∀_f\) adjunction, this is equivalent to \(ρX ≤ ∀_δ ∃_π ρX = ∀_δ δ^* π^* ∃_π ρX\).
+    But this follows immediately from the units of the \(∀\) and \(∃\) adjunctions.
+
+    All that is left is to show composition with the identity is the identity. We only prove one identity law, since the proof of the other one is symmetric.
+
+    \begin{align*}
+        f(x) = y 
+        ≡\ & x = x ⊓ f(x) = y\\ 
+        ≡\ & ∃ x' : X,\ x = x' ⊓ f(x') = y\\ 
+        ≡\ & f∘ρX(x) = y
+    \end{align*}
+\end{proof}
 
 \section{Tripos to topos construction}
 
 \begin{definition}
-    To a Type-tripos \(P\) we can associate the category \(\ty[P]\) of types along with partial equivalence relations over \(P\) with morphisms as above.
+    To a tripos \(P\) (over a category \(\C\)) we can associate the category \(\C[P]\) of types along with partial equivalence relations over \(P\) with morphisms as above.
 \end{definition}
 
 \begin{theorem}[Pitts]
-    The category \(\ty[P]\) is a topos.
+    The category \(\C[P]\) is a topos.
 \end{theorem}
-
-
-\section{Definition of a tripos language}
-
-TBD once I settle whether I can do the above in a general category instead of \(\ty\).
-
-\section{Tripos to topos construction bis.}
-
-

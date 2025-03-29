@@ -4,7 +4,7 @@ let
 
   tex = (pkgs.texlive.combine {
     inherit (pkgs.texlive) scheme-basic amsmath mathtools
-      latexmk xetex etoolbox unicode-math dvisvgm pdfcrop geometry;
+      latexmk xetex etoolbox unicode-math dvisvgm pdfcrop geometry pgf tikz-cd quiver ebproof;
   });
   python = pkgs.python3.override {
     self = python;
