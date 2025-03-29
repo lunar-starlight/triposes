@@ -48,9 +48,9 @@ We can define the evaluation of terms of type \(X\) in context \(Γ\) to morphis
 \begin{itemize}
     \item \(Γ ⊢_t xᵢ \Downarrow πᵢ\), where \(πᵢ\) is the projection from \(X₁×\dots× Xₙ\) ommitting the \(i\)-th component,
     \item \(Γ ⊢_t \texttt{tt} \Downarrow !_{X₁×\dots× Xₙ}\),
-    \item \(Γ ⊢_t ⟨a, b⟩ ↝ ⟨Γ ⊢_t a, Γ ⊢_t b⟩\), where \(⟨⟩\) on the right-hand side is the pairing function in \(\C\),
+    \item \(Γ ⊢_t ⟨a, b⟩ \leadsto ⟨Γ ⊢_t a, Γ ⊢_t b⟩\), where \(⟨⟩\) on the right-hand side is the pairing function in \(\C\),
     \item \(Γ ⊢_t \texttt{fst} \Downarrow π\) and \(Γ ⊢_t \texttt{snd} \Downarrow π'\), where \(π\) and \(π'\) are the first and second projections in \(\C\) respectively, and
-    \item \(Γ ⊢_t f(t) ↝ f∘(Γ ⊢_t t)\).
+    \item \(Γ ⊢_t f(t) \leadsto f∘(Γ ⊢_t t)\).
 \end{itemize}
 
 Formulas of type \(X\) in context \(Γ\) are
