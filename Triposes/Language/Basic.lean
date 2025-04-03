@@ -14,7 +14,7 @@ namespace Language
     /- Fix a tripos -/
     variable {P : 𝒞ᵒᵖ ⥤ HeytAlg} [T : Tripos P]
 
-    /-- `Formula As` denotes a predicate in `P (listProd As)`. -/
+    /-- `Formula' As` denotes a predicate in `P (listProd As)`. -/
     inductive Formula' [T : Tripos P] : 𝒞 → Type _ where
       /-- Injection from underlying structure-/
     | ι : ∀ {As}, P₀ (P := P) As → Formula' As
@@ -35,6 +35,7 @@ namespace Language
       /-- Existential quantifier -/
     | any : ∀ {Bs As}, (Bs ⟶ As) → Formula' Bs → Formula' As
 
+    /-- The evaluation of a formula into a bona fide element of the Heyting algebra -/
     def Formula'.eval {As : 𝒞} : Formula' (P := P) As → P₀ (P := P) As
     | .ι x => x
     | .app ρ f => P₁ f (eval ρ)
@@ -43,9 +44,10 @@ namespace Language
     | .conj φ ψ => eval φ ⊓ eval ψ
     | .disj φ ψ => eval φ ⊔ eval ψ
     | .impl φ ψ => eval φ ⇨ eval ψ
-    | .all f φ => (T.𝔸 f).map (eval φ)
-    | .any f φ => (T.𝔼 f).map (eval φ)
+    | .all f φ => T.𝔸.map f (eval φ)
+    | .any f φ => T.𝔼.map f (eval φ)
 
+    /-- The definition of equality of formulas up to evaluation -/
     @[simp]
     def FormulaSetoid {As : 𝒞} : Setoid (Formula' (P := P) As) where
       r φ ψ := φ.eval = ψ.eval
@@ -56,18 +58,24 @@ namespace Language
         case trans => exact Eq.trans
     -- def Formula_Eq {As : 𝒞} (φ ψ : Formula' (P := P) As) := φ.eval = ψ.eval
 
+    /-- `Formula As` denotes an equivalence class of a predicate in `P (listProd As)`. -/
     def Formula (As : 𝒞) := Quotient (FormulaSetoid (As := As) (P := P))
 
+    /-- The quotient map for `Formula` -/
     @[simp]
     def q {As : 𝒞} : Formula' (P := P) As → Formula (P := P) As := Quotient.mk FormulaSetoid
 
+    /-- Injection from underlying structure-/
     def Formula.ι {As : 𝒞} (x : P₀ (P := P) As) : Formula (P := P) As := q (P := P) (.ι x)
+    /-- The true predicate -/
     def Formula.tru {As : 𝒞} : Formula (P := P) As := q (P := P) (.tru (As := As))
+    /-- The false predicate -/
     def Formula.fal {As : 𝒞} : Formula (P := P) As := q (P := P) (.fal (As := As))
 
+    /-- Equality of `Formula`s is equality of evaluations of representatives -/
     syntax "unfold_quotient" : tactic
-    syntax "formula_unop_cong" : tactic
-    syntax "formula_binop_cong" : tactic
+    local syntax "formula_unop_cong" : tactic
+    local syntax "formula_binop_cong" : tactic
     macro_rules
       | `(tactic| unfold_quotient) =>
         `(tactic| apply Quotient.eq.mpr; simp [FormulaSetoid])
@@ -76,6 +84,7 @@ namespace Language
       | `(tactic| formula_unop_cong) =>
         `(tactic| rintro _ _ H; unfold_quotient; unfold Formula'.eval; rw [H])
 
+    /-- Application of a predicate to an expression -/
     def Formula.app {B As : 𝒞} : Formula (P := P) B → (f : As ⟶ B) → Formula (P := P) As :=
       Quotient.lift
       (fun φ ↦ q (P := P) ∘ Formula'.app (As := As) (B := B) φ)
@@ -87,29 +96,35 @@ namespace Language
         rw [H]
       )
 
+    /-- Conjunction -/
     def Formula.conj {As : 𝒞} : Formula (P := P) As → Formula (P := P) As → Formula (P := P) As :=
       Quotient.lift₂
       (fun φ ↦ q (P := P) ∘ (Formula'.conj (As := As) φ))
       (by formula_binop_cong)
 
+    /-- Disjunction -/
     def Formula.disj {As : 𝒞} : Formula (P := P) As → Formula (P := P) As → Formula (P := P) As :=
       Quotient.lift₂
       (fun φ ↦ q (P := P) ∘ (Formula'.disj (As := As) φ))
       (by formula_binop_cong)
 
+    /-- Implication -/
     def Formula.impl {As : 𝒞} : Formula (P := P) As → Formula (P := P) As → Formula (P := P) As :=
       Quotient.lift₂
       (fun φ ↦ q (P := P) ∘ (Formula'.impl (As := As) φ))
       (by formula_binop_cong)
 
+    /-- Universal quantifier -/
     def Formula.all {Bs As : 𝒞} (f : As ⟶ Bs) : Formula (P := P) As → Formula (P := P) Bs :=
       Quotient.lift (q (P := P) ∘ Formula'.all f)
       (by formula_unop_cong)
 
+    /-- Existential quantifier -/
     def Formula.any {Bs As : 𝒞} (f : As ⟶ Bs) : Formula (P := P) As → Formula (P := P) Bs :=
       Quotient.lift (q (P := P) ∘ Formula'.any f)
       (by formula_unop_cong)
 
+    /-- The evaluation of a formula into a bona fide element of the Heyting algebra -/
     @[reducible]
     def Formula.eval {As : 𝒞} : Formula (P := P) As → P₀ (P := P) As :=
       Quotient.lift (Formula'.eval (As := As) (P := P)) (by
@@ -125,37 +140,48 @@ namespace Language
   section Syntax
     open Lean
 
+    /-- Syntax for heyting biimplication -/
     scoped infixl:100 " ⇔ " => bihimp
 
+    /-- Syntax category for formulas -/
     declare_syntax_cat fpformula
+
+    /-- Top element -/
     syntax "⊤" : fpformula
+
+    /-- Bottom element -/
     syntax "⊥" : fpformula
+
+    /-- Conjunction -/
     syntax:70 fpformula "⊓" fpformula:71 : fpformula
+
+    /-- Disjunction -/
     syntax:60 fpformula "⊔" fpformula:61 : fpformula
+
+    /-- Implication -/
     syntax:50 fpformula "⇒" fpformula:51 : fpformula
+
+    /-- Biimplication -/
     syntax:50 fpformula "⇔" fpformula:51 : fpformula
+
+    /-- Universal quantifier -/
     syntax:80 "∀" typing_judgement "," fpformula:79 : fpformula
+
+    /-- Existential quantifier -/
     syntax:80 "∃" typing_judgement "," fpformula:79 : fpformula
+
+    /-- Grouping -/
     syntax:100 "(" fpformula ")" : fpformula
+
+    /-- Evaluation of a relation on some variables (given by an `fpterm`) -/
     syntax:1025 "⟪" term "|" fpterm "⟫" : fpformula
 
+    /-- The element of `Formula` defined by the internal language -/
     syntax:30 fpcontext "⊢ₕ" fpformula : term
+    /-- Truth in the internal language -/
     syntax:30 fpcontext "⊢" fpformula : term
 
-    partial def unfold : TSyntax `fpcontext → MacroM (Array (TSyntax `typing_judgement))
-    | `(fpcontext| ) => pure Array.empty
-    | `(fpcontext| $x:ident : $A:term) =>
-      do
-        let j ← `(typing_judgement| $x:ident : $A)
-        return Array.mk [j]
-    | `(fpcontext| $x:ident : $A:term, $Γ:typing_judgement,*) =>
-      do
-        let Γ ← `(fpcontext| $Γ:typing_judgement,*)
-        let As ← unfold Γ
-        let j ← `(typing_judgement| $x:ident : $A)
-        return Array.mk (j :: As.toList)
-    | _ => Macro.throwError "invalid context syntax"
-
+    /-- Conversion of the internal syntax to a formula -/
     macro_rules
     | `($Γ:fpcontext ⊢ₕ ⟪ $t:term | $f:fpterm ⟫) => do
       let f ← `($Γ:fpcontext ⊢ₑ $f)
@@ -196,7 +222,6 @@ namespace Language
       `(Formula.any (ChosenFiniteProducts.fst _ _) $t)
     | `($Γ:fpcontext ⊢ₕ ($t:fpformula)) => `($Γ:fpcontext ⊢ₕ $t)
     | `($Γ:fpcontext ⊢ $t:fpformula) => `(($Γ:fpcontext ⊢ₕ $t) = Formula.tru)
-    -- | `($Γ:fpcontext ⊢ $t:fpformula) => `(⊤ = ($Γ:fpcontext ⊢ₕ $t).eval)
 
     namespace Delab
       open PrettyPrinter

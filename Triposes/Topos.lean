@@ -15,6 +15,7 @@ section Defn
 
   open ChosenFiniteProducts
 
+  /-- The tripos-to-topos construction -/
   instance Tripos.category : Category (Σ X : 𝒞, PER (P := P) X) where
     Hom X Y := PERHom (𝒞 := 𝒞) X.2 Y.2
     comp f g := PERHomComp g f
@@ -43,22 +44,25 @@ section Defn
         total := by
           replace ⟨X, ρX⟩ := X
           apply biimpl_eq_top_iff.mpr
-          simp_proj
           apply le_antisymm
           · exact impl_eq_top_iff.mp ρX.extent_le_exists_rel
           · apply Any.adj.mp
-            have H := biimpl_eq_top_iff.mp ρX.rel_le_extent_left
-            simp only [Category.comp_id, lift_diag, lift_fst_snd, map_id] at H
             simp_proj
-            exact conj_eq_right.mp H
+            have H := map_monotone (f := x : X, y : X ⊢ₑ ⟨⟨x, y⟩, x⟩) (impl_eq_top_iff.mp ρX.trans)
+            simp [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd, ←Category.assoc, Category.id_comp, Category.comp_id, ←map_comp_app, map_conj, map_disj, map_impl] at H
+            apply le_trans'
+            · exact H
+            · apply le_conj
+              · rfl
+              · have K := impl_eq_top_iff.mp ρX.sym
+                simp only [Category.comp_id, lift_fst_snd, map_id, lift_snd_fst] at K
+                exact K
         }
     id_comp := by
       rintro ⟨X, ρX⟩ ⟨Y, ρY⟩ f
       apply PERHom_ext
       unfold PERHom.hom
-      unfold CategoryStruct.id CategoryStruct.comp
-      unfold PERHomComp PERHom.hom
-      simp
+      simp [PERHom.hom, PERHomComp]
       apply le_antisymm
       · have H := impl_eq_top_iff.mp f.congrDom; simp at H
         replace H := map_monotone (T := T) (f := x : X, y : Y, x' : X ⊢ₑ ⟨⟨x, x'⟩, y⟩) H
@@ -94,9 +98,7 @@ section Defn
       rintro ⟨X, ρX⟩ ⟨Y, ρY⟩ f
       apply PERHom_ext
       unfold PERHom.hom
-      unfold CategoryStruct.id CategoryStruct.comp
-      unfold PERHomComp PERHom.hom
-      simp
+      simp [PERHomComp, PERHom.hom]
       apply le_antisymm
       · have H := impl_eq_top_iff.mp f.congrCod; simp at H
         replace H := map_monotone (T := T) (f := x : X, y : Y, y' : Y ⊢ₑ ⟨⟨x, y'⟩, y⟩) H
@@ -131,8 +133,8 @@ section Defn
     assoc := by
       rintro ⟨X, ρX⟩ ⟨Y, ρY⟩ ⟨Z, ρZ⟩ ⟨W, ρW⟩ f g h
       apply PERHom_ext
-      unfold PERHom.hom CategoryStruct.comp PERHomComp PERHom.hom
-      simp [iota_eval]
+      unfold PERHom.hom
+      simp [PERHomComp, PERHom.hom, iota_eval]
       have isPB : IsPullback
         (x : X, w : W, z : Z, y : Y ⊢ₑ ⟨⟨x, w⟩, z⟩) (x : X, w : W, z : Z, y : Y ⊢ₑ ⟨⟨x, z⟩, y⟩)
         (x : X, w : W, z : Z ⊢ₑ ⟨x, z⟩) (x : X, z : Z, y : Y ⊢ₑ ⟨x, z⟩) := by sorry

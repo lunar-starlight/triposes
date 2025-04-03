@@ -9,6 +9,8 @@ open Language
 section Algebra
   universe u v
   variable {𝒞 : Type u} [Category.{v, u} 𝒞]
+
+  /- Fix a tripos -/
   variable {P : 𝒞ᵒᵖ ⥤ HeytAlg} [T : Tripos P]
 
   variable {As : 𝒞}
@@ -16,17 +18,18 @@ section Algebra
   instance : LE (Formula (P := P) As) where
     le φ ψ := φ.eval ≤ ψ.eval
 
+  /-- Inequality between `Formula`s is inequality between evaluations of representatives -/
   syntax "unfold_quotient_le" : tactic
   syntax "full_eval" : tactic
   macro_rules
     | `(tactic| unfold_quotient_le) =>
-      `(tactic| simp [LE.le, instLEFormula])
+      `(tactic| simp [LE.le, instLEFormula, min, SemilatticeInf.inf])
     | `(tactic| full_eval) =>
       `(tactic| simp [Formula.ι, Formula.app, Formula.impl, Formula.conj, Formula.disj, Formula.all, Formula.any, Formula.eval, Formula'.eval])
       -- `(tactic| repeat (first | unfold Formula.app | unfold Formula.impl | unfold Formula.conj | unfold Formula.disj | unfold Formula.all | unfold Formula.any))
 
+  @[simp]
   instance : Lattice (Formula (P := P) As) where
-  -- instance : HeytingAlgebra (Formula (P := P) As) where
     le_refl _ := by unfold_quotient_le
     le_trans _ _ _ := le_trans
     le_antisymm φ ψ := by
@@ -34,8 +37,6 @@ section Algebra
       induction ψ using Quotient.ind
       rintro H K
       unfold_quotient
-      simp [instLEFormula] at H
-      simp [instLEFormula] at K
       apply_rules [le_antisymm]
     sup := Formula.disj
     le_sup_left φ ψ := by
@@ -53,8 +54,6 @@ section Algebra
       induction ψ using Quotient.ind
       rintro H K
       unfold_quotient_le
-      simp [instLEFormula] at H
-      simp [instLEFormula] at K
       full_eval
       tauto
     inf := Formula.conj
@@ -74,42 +73,24 @@ section Algebra
       induction α using Quotient.ind
       rintro H K
       unfold_quotient_le
-      simp [instLEFormula] at H
-      simp [instLEFormula] at K
       full_eval
       tauto
 
+  @[simp]
   instance : HeytingAlgebra (Formula (P := P) As) where
     himp := Formula.impl
     le_himp_iff φ ψ α := by
       apply φ.ind; apply ψ.ind; apply α.ind; rintro φ ψ α
       constructor
       · rintro H
-        unfold LE.le Preorder.toLE PartialOrder.toPreorder SemilatticeSup.toPartialOrder
-        unfold Lattice.toSemilatticeSup instLatticeFormula instLEFormula Formula.eval; simp
-        conv =>
-          enter [1]
-          tactic =>
-            unfold min SemilatticeInf.toMin SemilatticeInf.inf Lattice.toSemilatticeInf Formula.conj; simp
-        conv => lhs; unfold Formula'.eval
-        unfold LE.le Preorder.toLE PartialOrder.toPreorder SemilatticeSup.toPartialOrder at H
-        unfold Lattice.toSemilatticeSup instLatticeFormula instLEFormula at H
-        unfold Formula.eval Formula.impl at H; simp at H
-        conv at H => rhs; unfold Formula'.eval
+        unfold_quotient_le
+        full_eval
+        simp [LE.le, min, SemilatticeInf.inf, Formula.eval, Formula.impl, Formula'.eval] at H
         apply_rules [le_himp_iff.mp]
       · rintro H
-        unfold LE.le Preorder.toLE PartialOrder.toPreorder SemilatticeSup.toPartialOrder
-        unfold Lattice.toSemilatticeSup instLatticeFormula instLEFormula
-        unfold Formula.eval Formula.impl; simp
-        conv => rhs; unfold Formula'.eval
-        unfold LE.le Preorder.toLE PartialOrder.toPreorder SemilatticeSup.toPartialOrder at H
-        unfold Lattice.toSemilatticeSup instLatticeFormula instLEFormula at H
-        unfold Formula.eval at H; simp at H
-        conv at H =>
-          enter [1]
-          tactic =>
-            unfold min SemilatticeInf.toMin SemilatticeInf.inf Lattice.toSemilatticeInf Formula.conj; simp
-        conv at H => lhs; unfold Formula'.eval
+        unfold_quotient_le
+        full_eval
+        simp [LE.le, min, SemilatticeInf.inf, Formula.eval, Formula.conj, Formula'.eval] at H
         apply_rules [le_himp_iff.mpr]
     top := Formula.tru
     le_top φ := le_top
@@ -167,6 +148,7 @@ section Algebra
         rw [H, K]
         unfold_quotient; full_eval
 
+    /-- The proposition that the constructor `Formula.ι` is inverse to evaluation -/
     lemma iota_eval : Formula.ι (α.eval) = α := by
       induction α using Quotient.ind
       unfold_quotient
@@ -231,17 +213,15 @@ section Map
     full_eval
 
   variable (f) (β) in
+  /-- The proposition that if `f* β ≤ α` and `β = ⊤` then also `α = ⊤` -/
   theorem weakening : β.app f ≤ α → β = ⊤ → α = ⊤ := by
     induction α using Quotient.ind
     induction β using Quotient.ind
     rintro le isTop
     rw [isTop] at le
-    apply eq_top_iff.mpr
-    trans Formula.app ⊤ f
-    · apply le_of_eq
-      unfold_quotient
-      full_eval
-    · exact le
+    simp [Formula.eval, Formula'.eval, Formula.app, Formula.tru, Top.top, instLEFormula] at le
+    unfold_quotient
+    exact le
 
   theorem map_monotone : β ≤ β' → β.app f ≤ β'.app f := by
     induction β using Quotient.ind
@@ -267,7 +247,9 @@ section FPCat
   theorem diag_fst : diag ≫ fp.fst _ _ = 𝟙 X := by unfold diag; aesop_cat
   theorem diag_snd : diag ≫ fp.snd _ _ = 𝟙 X := by unfold diag; aesop_cat
 
+  /-- Put morphisms built from `fpterm`s in canonical form -/
   syntax "simp_proj" : tactic
+  /-- Put morphisms built from `fpterm`s in canonical form without `simp`-ing anything else -/
   syntax "simp_proj_only" : tactic
   macro_rules
     | `(tactic| simp_proj_only) =>
@@ -277,6 +259,18 @@ section FPCat
     | `(tactic| simp_proj) =>
       `(tactic| simp
         [comp_lift, lift_fst, lift_snd, lift_diag, lift_snd_fst, lift_fst_snd, lift_comp_fst_comp_snd, diag_fst, diag_snd, ←Category.assoc, Category.id_comp, Category.comp_id, ←map_comp_app, map_conj, map_disj, map_impl])
+
+  -- instance : Pullback (fp.fst (X ⊗ Y) Z) (fp.lift (fp.fst (X ⊗ Y) Z ≫ fp.snd _ _) (fp.snd _ _)) (fp.snd _ _) (fp.fst _ _) where
+  --   w := by aesop_cat
+  --   isLimit := by
+  --     intro T x y eq
+  --     use fp.lift (fp.lift (x ≫ fp.fst _ _) (y ≫ fp.fst _ _)) (y ≫ fp.snd _ _)
+  --     simp_proj
+  --     constructor
+  --     · rw [←eq]
+  --       simp_proj
+  --     · rintro p' rfl rfl
+  --       simp_proj
 
 end FPCat
 
@@ -291,43 +285,49 @@ namespace Any
   variable {φ : Formula (P := P) X} {ψ : Formula (P := P) Y}
   variable {α α' : Formula (P := P) As} {β : Formula (P := P) Bs} {γ : Formula (P := P) Cs}
 
+  /-- The adjunction property `x ≤ f* y ⇔ ∃_f x ≤ y` -/
   lemma adj : (α ≤ β.app f) ↔ (Formula.any f α ≤ β) := by
     induction α using Quotient.ind
     induction β using Quotient.ind
     constructor
     · rintro H
       unfold_quotient_le
-      exact (T.𝔼 _).adj.mp H
+      exact T.𝔼.adj.mp H
     · rintro H
       unfold_quotient_le
-      exact (T.𝔼 _).adj.mpr H
+      exact T.𝔼.adj.mpr H
 
+  /-- The unit of the adjunction `∃_f ⊣ f*` -/
   lemma unit : α ≤ Formula.app (Formula.any f α) f := by
     induction α using Quotient.ind
     unfold_quotient_le
     full_eval
-    exact (T.𝔼 _).unit
+    exact T.𝔼.unit
 
+  /-- The counit of the adjunction `∃_f ⊣ f*` -/
   lemma counit : Formula.any f (Formula.app β f) ≤ β := by
     induction β using Quotient.ind
     unfold_quotient_le
     full_eval
-    exact (T.𝔼 _).counit
+    exact T.𝔼.counit
 
+  /-- The proposition that `∃_𝟙` is the identity morphism -/
   lemma id_adj_id : Formula.any (𝟙 _) α = α := by
     induction α using Quotient.ind
     unfold_quotient
     full_eval
-    rw [(T.𝔼 _).id_adj_id]
+    rw [T.𝔼.id_adj_id]
     simp
 
+  /-- The left frobenius condition -/
   lemma frob_left : Formula.any f (α.conj (β.app f)) = (Formula.any f α).conj β := by
     induction α using Quotient.ind
     induction β using Quotient.ind
     unfold_quotient
     full_eval
-    apply (T.𝔼 _).frob_left
+    apply T.𝔼.frob_left
 
+  /-- The right frobenius condition -/
   lemma frob_right : Formula.any f ((β.app f).conj α) = β.conj (Formula.any f α) := by
     rw [conj_comm, conj_comm β]
     exact frob_left
@@ -336,11 +336,21 @@ namespace Any
     induction α using Quotient.ind
     induction α' using Quotient.ind
     rintro H
-    exact (T.𝔼 _).map.monotone H
+    exact (T.𝔼.map f).monotone H
 
   section BC
     variable {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W}
 
+    /-- For the pullback square
+        ```
+        X ---f---> Y
+        |          |
+        g          h
+        |          |
+        v          v
+        Z ---k---> W
+        ```
+        the proposition `∃_f (g* z) = g* (∃_k z)` -/
     def BeckChevalley : IsPullback f g h k → ∀ {z : Formula (P := P) Z}, Formula.any f (z.app g) = (Formula.any k z).app h := by
       rintro isPB z
       induction z using Quotient.ind
@@ -349,18 +359,17 @@ namespace Any
       apply T.𝔼_BeckChevalley isPB
   end BC
 
-  theorem comp_app
-    : Formula.any g (Formula.any f α) = Formula.any (f ≫ g) α := by
+  /-- The proposition that `∃_g (∃_f α) = ∃_{f ≫ g} α` -/
+  theorem comp_app : Formula.any g (Formula.any f α) = Formula.any (f ≫ g) α := by
       apply le_antisymm
       · repeat apply adj.mp
         rw [←map_comp_app]
-        have isPB : IsPullback (𝟙 _) (𝟙 _) (f ≫ g) (f ≫ g) := by sorry
-        simp [←BeckChevalley isPB, id_adj_id]
+        apply adj.mpr
+        simp
       · apply adj.mp
         rw [map_comp_app]
-        have isPB : IsPullback (𝟙 _) (𝟙 _) (g) (g) := by sorry
-        have isPB' : IsPullback (𝟙 _) (𝟙 _) (f) (f) := by sorry
-        simp [←BeckChevalley isPB, ←BeckChevalley isPB', id_adj_id]
+        repeat apply adj.mpr
+        simp
 
   variable (f) in
   theorem iso_app {φ : IsIso f} : Formula.any g β = Formula.any (f ≫ g) (β.app f) := by
@@ -378,6 +387,7 @@ namespace Any
     simp
 
   open ChosenFiniteProducts
+  /-- The proposition that ∃ y : Y ∃ z : Z = ∃ z : Z ∃ y : Y -/
   theorem comm_app [fp : ChosenFiniteProducts 𝒞] {φ : Formula (P := P) ((X ⊗ Y) ⊗ Z)}
     : Formula.any (fp.fst X Y) (Formula.any (fp.fst (X ⊗ Y) Z) φ) = Formula.any (fp.fst X Z) (Formula.any (fp.fst (X ⊗ Z) Y) (φ.app (x : X, z : Z, y : Y ⊢ₑ ⟨⟨x, y⟩, z⟩))) := by
       repeat rw [comp_app]
@@ -398,6 +408,7 @@ namespace All
   variable {φ : Formula (P := P) X} {ψ : Formula (P := P) Y}
   variable {α α' : Formula (P := P) As} {β : Formula (P := P) Bs} {γ : Formula (P := P) Cs}
 
+  /-- The adjunction property `f* x ≤ y ⇔ x ≤ ∀_f y` -/
   lemma adj : (β.app f ≤ α) ↔ (β ≤ Formula.all f α) := by
     induction α using Quotient.ind
     induction β using Quotient.ind
@@ -405,38 +416,42 @@ namespace All
     · rintro H
       unfold_quotient_le
       full_eval
-      exact (T.𝔸 _).adj.mp H
+      exact T.𝔸.adj.mp H
     · rintro H
       unfold_quotient_le
       full_eval
-      exact (T.𝔸 _).adj.mpr H
+      exact T.𝔸.adj.mpr H
 
+  /-- The unit of the adjunction `f* ⊣ ∀_f` -/
   lemma unit : β ≤ Formula.all f (Formula.app β f) := by
     induction β using Quotient.ind
     unfold_quotient_le
     full_eval
-    exact (T.𝔸 _).unit
+    exact T.𝔸.unit
 
+  /-- The counit of the adjunction `f* ⊣ ∀_f` -/
   lemma counit : Formula.app (Formula.all f α) f ≤ α := by
     induction α using Quotient.ind
     unfold_quotient_le
     full_eval
-    exact (T.𝔸 _).counit
+    exact T.𝔸.counit
 
+  /-- The proposition that `∀_𝟙` is the identity morphism -/
   lemma id_adj_id : Formula.all (𝟙 _) α = α := by
     induction α using Quotient.ind
     unfold_quotient
     full_eval
-    rw [(T.𝔸 _).id_adj_id]
+    rw [T.𝔸.id_adj_id]
     simp
 
-  -- lemma top_eq_top : (y : Y ⊢ₕ ∀ x : X , ⊤) = (y : Y ⊢ₕ ⊤ : Formula _ (T := T)) := by
+  /-- The proposition that `∀_f` preserves the top element -/
   lemma top_eq_top : Formula.all (T := T) f ⊤ = ⊤ := by
     unfold_quotient
     full_eval
-    exact (T.𝔸 _).top_eq_top
+    exact T.𝔸.top_eq_top
 
   variable (f) in
+  /-- The proposition that `∀_f` reflects the top element -/
   lemma eq_top_iff_forall_eq_top : α = ⊤ ↔ (Formula.all f α) = ⊤ := by
     constructor
     · rintro rfl
@@ -451,11 +466,21 @@ namespace All
     induction α using Quotient.ind
     induction α' using Quotient.ind
     rintro H
-    exact (T.𝔸 _).map.monotone H
+    exact (T.𝔸.map f).monotone H
 
   section BC
     variable {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W}
 
+    /-- For the pullback square
+        ```
+        X ---f---> Y
+        |          |
+        g          h
+        |          |
+        v          v
+        Z ---k---> W
+        ```
+        the proposition `∀_f (g* z) = g* (∀_k z)` -/
     def BeckChevalley : IsPullback f g h k → ∀ {z : Formula (P := P) Z}, Formula.all f (z.app g) = (Formula.all k z).app h := by
       rintro isPB z
       induction z using Quotient.ind
@@ -476,6 +501,7 @@ section Adjoints
   variable {φ : Formula (P := P) X} {ψ : Formula (P := P) Y}
   variable {α : Formula (P := P) As} {β : Formula (P := P) Bs} {γ : Formula (P := P) Cs}
 
+  /-- The proposition that `∀_f(φ(x) ⇒ ψ) = (∃_f φ(x)) ⇒ ψ` -/
   lemma frobenius : Formula.all f (α ⇨ (Formula.app β f)) = (Formula.any f α) ⇨ β := by
     induction α using Quotient.ind
     induction β using Quotient.ind

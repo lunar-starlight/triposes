@@ -1,7 +1,5 @@
 import Mathlib.Order.Heyting.Basic
 import Mathlib.Order.Heyting.Hom
--- import Mathlib.Order.SymmDiff
--- import Mathlib.Order.Monotone.Basic
 import Mathlib.CategoryTheory.Limits.Shapes.Pullback.CommSq
 
 import Mathlib.CategoryTheory.Closed.Cartesian
@@ -19,27 +17,16 @@ section Tripos
 
   variable {P : 𝒞ᵒᵖ ⥤ HeytAlg}
 
-  def HeytingHom.toOrderHom {X Y : Type} [HeytingAlgebra X] [HeytingAlgebra Y] (f : HeytingHom X Y) : OrderHom X Y := f
+  /- `HeytingHom` is missing monotonicity -/
   def HeytingHom.monotone {X Y : Type} [HeytingAlgebra X] [HeytingAlgebra Y] (f : HeytingHom X Y) : Monotone f := by
     rintro a b a_le_b
     gcongr
-    -- exact OrderHomClass.GCongr.mono f a_le_b
 
-  def HeytingHom.map_top' {X Y : Type} [HeytingAlgebra X] [HeytingAlgebra Y] (f : HeytingHom X Y) : f ⊤ = ⊤ := by simp only [map_top]
-
-  /- Helper functions to call P on unopped stuff -/
-  abbrev P₀ (X : 𝒞) := P.obj (.op X)
-  instance {X : 𝒞} : HeytingAlgebra (P₀ (P := P) X) where
-    himp_bot := by simp
-  instance {X : 𝒞} : Preorder (P₀ (P := P) X) where
-    le_refl := le_refl
-    le_trans _ _ _ := le_trans
-    lt_iff_le_not_le _ _ := lt_iff_le_not_le
-
-  -- def P₁ {X Y : 𝒞} : (f : X ⟶ Y) → P.obj (.op Y) ⟶ P.obj (.op X) := P.map ∘ .op
+  /- Helper functions to call `P` on unopped stuff -/
+  def P₀ (X : 𝒞) := P.obj (.op X)
   def P₁ {X Y : 𝒞} : (f : X ⟶ Y) → P₀ (P := P) Y ⟶ P₀ (P := P) X := P.map ∘ .op
-  -- notation f "*" => P₁ f
 
+  /- Lean forgets `P₁` is a functor -/
   @[simp]
   theorem P₁.map_id {X : 𝒞} : P₁ (P := P) (𝟙 X) = HeytingHom.id _ := by
     unfold P₁
@@ -54,6 +41,7 @@ section Tripos
     unfold P₁
     aesop_cat
 
+  /- Lean forgets `P₁` maps to HeytAlg -/
   @[simp]
   theorem P₁.map_himp {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} : P₁ f (y ⇨ y') = P₁ f y ⇨ P₁ f y' := by aesop_cat
   @[simp]
@@ -69,105 +57,32 @@ section Tripos
   theorem P₁.map_mono {X Y : 𝒞} {f : X ⟶ Y} {y y' : P₀ (P := P) Y} (H : y ≤ y') : P₁ (P := P) f y ≤ P₁ (P := P) f y' := by
     apply OrderHomClass.GCongr.mono _ H
 
-  @[reducible]
-  def isTop {X : 𝒞} (t : P₀ (P := P) X) := t ≥ ⊤
-
-  theorem P₁.map_isTop {X Y : 𝒞} {f : X ⟶ Y} {t : P₀ (P := P) Y} : isTop t → isTop (P₁ f t) := by
-    rintro H
-    simp at H
-    rw [H]
-    simp
-
   section Adjoints
-    variable {X Y : 𝒞} (f : X ⟶ Y)
 
-    class LeftAdjoint where
-      map : OrderHom (P₀ (P := P) X) (P₀ Y)
-      adj : ∀ {x : P₀ X} {y : P₀ Y}, (x ≤ P₁ f y) ↔ (map x ≤ y)
+    /-- A choice of adjoints for all morphisms -/
+    class ChosenLeftAdjoints where
+      /-- The underlying map of the adjoint `∃_f` -/
+      map : {X Y : 𝒞} → (X ⟶ Y) → OrderHom (P₀ (P := P) X) (P₀ Y)
+      /-- The adjunction property `x ≤ f* y ⇔ ∃_f x ≤ y` -/
+      adj : ∀ {X Y : 𝒞} {f : X ⟶ Y} {x : P₀ X} {y : P₀ Y}, (x ≤ P₁ f y) ↔ (map f x ≤ y)
 
-    class RightAdjoint where
-      map : OrderHom (P₀ (P := P) X) (P₀ Y)
-      adj : ∀ {y : P₀ Y} {x : P₀ X}, (P₁ f y ≤ x) ↔ (y ≤ map x )
+    namespace ChosenLeftAdjoints
+      variable {X Y : 𝒞} {f : X ⟶ Y}
+      variable {x : P₀ (P := P) X} {y : P₀ (P := P) Y}
+      variable [𝔼 : ChosenLeftAdjoints (P := P)]
 
-    instance : FunLike (RightAdjoint (P := P) f) (P₀ (P := P) X) (P₀ (P := P) Y) where
-      coe := fun f => f.map
-      coe_injective' := by
-        intro 𝔸 𝔸' eq
-        cases 𝔸
-        cases 𝔸'
-        congr
-        simp at eq
-        exact eq
-
-    instance : TopHomClass (RightAdjoint (P := P) f) (P₀ (P := P) X) (P₀ (P := P) Y) where
-      map_top := by
-        rintro 𝔸
-        apply top_unique
-        apply 𝔸.adj.mp
-        simp
-
-    instance : InfHomClass (RightAdjoint (P := P) f) (P₀ (P := P) X) (P₀ (P := P) Y) where
-      map_inf := by
-        rintro 𝔸 a b
-        apply le_antisymm
-        case a =>
-          simp
-          constructor
-          repeat apply 𝔸.map.monotone; simp
-        case a =>
-          apply 𝔸.adj.mp
-          simp only [Function.comp_apply, le_inf_iff]
-          constructor
-          all_goals apply 𝔸.adj.mpr
-          · apply inf_le_left
-          · apply inf_le_right
-
-    instance : FunLike (LeftAdjoint (P := P) f) (P₀ (P := P) X) (P₀ (P := P) Y) where
-      coe := fun f => f.map
-      coe_injective' := by
-        intro 𝔼 𝔼' eq
-        cases 𝔼
-        cases 𝔼'
-        congr
-        simp at eq
-        exact eq
-
-    instance : BotHomClass (LeftAdjoint (P := P) f) (P₀ (P := P) X) (P₀ (P := P) Y) where
-      map_bot := by
-        rintro 𝔼
-        apply bot_unique
-        apply 𝔼.adj.mp
-        simp
-
-    instance : SupHomClass (LeftAdjoint (P := P) f) (P₀ (P := P) X) (P₀ (P := P) Y) where
-      map_sup := by
-        rintro 𝔼 a b
-        apply le_antisymm
-        case a =>
-          apply 𝔼.adj.mp
-          simp only [Function.comp_apply, sup_le_iff]
-          constructor
-          all_goals apply 𝔼.adj.mpr
-          · apply le_sup_left
-          · apply le_sup_right
-        case a =>
-          simp
-          constructor
-          repeat apply 𝔼.map.monotone; simp
-
-    namespace LeftAdjoint
-      variable {f : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ (P := P) Y}
-      variable [𝔼 : LeftAdjoint (P := P) f]
-
-      lemma unit : x ≤ P₁ f (𝔼 x) := by
+      /-- The unit of the adjunction `∃_f ⊣ f*` -/
+      lemma unit : x ≤ P₁ f (𝔼.map f x) := by
         apply 𝔼.adj.mpr
         rfl
 
-      lemma counit : 𝔼 (P₁ f y) ≤ y := by
+      /-- The counit of the adjunction `∃_f ⊣ f*` -/
+      lemma counit : 𝔼.map f (P₁ f y) ≤ y := by
         apply 𝔼.adj.mp
         rfl
 
-      lemma id_adj_id [𝔼 : LeftAdjoint (P := P) (𝟙 X)] : 𝔼.map = OrderHom.id := by
+      /-- The proposition that `∃_𝟙` is the identity morphism -/
+      lemma id_adj_id : 𝔼.map (𝟙 X) = OrderHom.id := by
         apply le_antisymm
         · apply OrderHom.le_def.mpr
           rintro x
@@ -178,11 +93,11 @@ section Tripos
           rintro x
           simp
           trans
-          · exact 𝔼.unit
-          · unfold P₁
-            aesop_cat
+          · exact 𝔼.unit (f := 𝟙 X)
+          · aesop_cat
 
-      lemma frob_left : 𝔼 (x ⊓ P₁ f y) = (𝔼 x) ⊓ y := by
+      /-- The left frobenius condition -/
+      lemma frob_left : 𝔼.map f (x ⊓ P₁ f y) = (𝔼.map f x) ⊓ y := by
         apply le_antisymm
         · apply le_inf
           all_goals apply 𝔼.adj.mp
@@ -195,66 +110,76 @@ section Tripos
           simp
           apply 𝔼.unit
 
-      lemma frob_right : 𝔼 (P₁ f y ⊓ x) = y ⊓ (𝔼 x) := by
+      /-- The right frobenius condition -/
+      lemma frob_right : 𝔼.map f (P₁ f y ⊓ x) = y ⊓ (𝔼.map f x) := by
         rw [inf_comm, inf_comm y]
         exact 𝔼.frob_left
 
-    end LeftAdjoint
+    end ChosenLeftAdjoints
 
-    namespace RightAdjoint
-      variable {f : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ (P := P) Y}
-      variable [𝔸 : RightAdjoint (P := P) f]
+    class ChosenRightAdjoints where
+      /-- The underlying map of the adjoint `∀_f` -/
+      map : {X Y : 𝒞} → (X ⟶ Y) → OrderHom (P₀ (P := P) X) (P₀ Y)
+      /-- The adjunction property `f* x ≤ y ⇔ x ≤ ∀_f y` -/
+      adj : ∀ {X Y : 𝒞} {f : X ⟶ Y} {y : P₀ Y} {x : P₀ X}, (P₁ f y ≤ x) ↔ (y ≤ map f x )
 
-      lemma unit : y ≤ 𝔸 (P₁ f y) := by
+    namespace ChosenRightAdjoints
+      variable {X Y : 𝒞} {f : X ⟶ Y}
+      variable {x : P₀ (P := P) X} {y : P₀ (P := P) Y}
+      variable [𝔸 : ChosenRightAdjoints (P := P)]
+
+      /-- The unit of the adjunction `f* ⊣ ∀_f` -/
+      lemma unit : y ≤ 𝔸.map f (P₁ f y) := by
         apply 𝔸.adj.mp
         rfl
 
-      lemma counit : P₁ f (𝔸 x) ≤ x := by
+      /-- The counit of the adjunction `f* ⊣ ∀_f` -/
+      lemma counit : P₁ f (𝔸.map f x) ≤ x := by
         apply 𝔸.adj.mpr
         rfl
 
-      lemma id_adj_id [𝔸 : RightAdjoint (P := P) (𝟙 X)] : 𝔸.map = OrderHom.id := by
+      /-- The proposition that `∀_𝟙` is the identity morphism -/
+      lemma id_adj_id : 𝔸.map (𝟙 X) = OrderHom.id := by
         apply le_antisymm
         · apply OrderHom.le_def.mpr
           rintro x
           simp
-          trans (P₁ (𝟙 X)) (𝔸 x)
-          · unfold P₁
-            aesop_cat
-          · exact 𝔸.counit
+          apply le_trans'
+          · exact 𝔸.counit (f := 𝟙 X)
+          · aesop_cat
         · apply OrderHom.le_def.mpr
           rintro x
           apply 𝔸.adj.mp
           unfold P₁
           aesop_cat
 
-      lemma top_eq_top : 𝔸 ⊤ = ⊤ := by
+      /-- The proposition that `∀_f` preserves the top element -/
+      lemma top_eq_top : 𝔸.map f ⊤ = ⊤ := by
         apply top_le_iff.mp
         apply 𝔸.adj.mp
         simp
 
-    end RightAdjoint
+    end ChosenRightAdjoints
 
-    lemma LeftAdjoint_congr {X Y : 𝒞} {f g : X ⟶ Y} (H: f = g) : LeftAdjoint (P := P) f = LeftAdjoint (P := P) g := congrArg LeftAdjoint H
-    lemma RightAdjoint_congr {X Y : 𝒞} {f g : X ⟶ Y} (H : f = g) : RightAdjoint (P := P) f = RightAdjoint (P := P) g := congrArg RightAdjoint H
-
-    lemma frobenius' {f : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ Y} [𝔸 : RightAdjoint f] [𝔼 : LeftAdjoint f]
-      : 𝔸 (x ⇨ P₁ f y) = (𝔼 x) ⇨ y := by
+    /-- The proposition that `∀_f(φ(x) ⇒ ψ) = (∃_f φ(x)) ⇒ ψ` -/
+    lemma frobenius' {X Y : 𝒞} {f : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ Y} [𝔸 : ChosenRightAdjoints] [𝔼 : ChosenLeftAdjoints]
+      : 𝔸.map f (x ⇨ P₁ f y) = (𝔼.map f x) ⇨ y := by
       apply le_antisymm
       case a =>
         apply le_himp_comm.mp
         apply 𝔼.adj.mp
-        simp only [Function.comp_apply, map_himp]
+        rw [map_himp]
         apply le_himp_comm.mp
         apply 𝔸.counit
       case a =>
         apply 𝔸.adj.mp
-        simp only [Function.comp_apply, map_himp]
+        rw [map_himp]
         apply himp_le_himp_right
         apply 𝔼.unit
 
   end Adjoints
 
+  /-- The generic object -/
   class ChosenGeneric where
     𝕊 : 𝒞
     σ : P₀ (P := P) 𝕊
@@ -263,114 +188,53 @@ section Tripos
 
   variable [fp : ChosenFiniteProducts 𝒞] [ccc : CartesianClosed 𝒞]
 
-  variable (P) in
-  class Tripos extends ChosenGeneric (P := P) where
-    𝔼 : ∀ {X Y : 𝒞} (f : X ⟶ Y), LeftAdjoint (P := P) f
-    𝔸 : ∀ {X Y : 𝒞} (f : X ⟶ Y), RightAdjoint (P := P) f
+  -- class Pullback {P X Y Z : 𝒞} (fst : P ⟶ X) (snd : P ⟶ Y) (f : X ⟶ Z) (g : Y ⟶ Z) extends
+  --   CommSq fst snd f g : Prop where
+  --   isLimit : ∀ {T : 𝒞} {x : T ⟶ X} {y : T ⟶ Y} {_ : x ≫ f = y ≫ g}, (∃! p : T ⟶ P, p ≫ fst = x ∧ p ≫ snd = y)
 
-    BeckChevalley𝔼' : ∀ {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W},
-      IsPullback f g h k → (𝔼 f).map ∘ P₁ g = P₁ h ∘ (𝔼 k).map
-    BeckChevalley𝔸' : ∀ {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W},
-      IsPullback f g h k → (𝔸 f).map ∘ P₁ g = P₁ h ∘ (𝔸 k).map
+  variable (P) in
+  /-- A tripos is a contravariant functor `P`, with chosen left and right adjoints
+      to substitutions, the corresponding Beck-Chevalley rules, and a chosen
+      generic object -/
+  class Tripos extends ChosenGeneric (P := P) where
+    /-- The existential quantifier -/
+    𝔼 : ChosenLeftAdjoints (P := P)
+    /-- The universal quantifier -/
+    𝔸 : ChosenRightAdjoints (P := P)
+
+    /-- For the pullback square
+        ```
+        X ---f---> Y
+        |          |
+        g          h
+        |          |
+        v          v
+        Z ---k---> W
+        ```
+        the proposition `∃_f (g* z) = g* (∃_k z)` -/
+    𝔼_BeckChevalley : ∀ {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W} {z : P₀ Z},
+      IsPullback f g h k →  𝔼.map f (P₁ g z) = P₁ h (𝔼.map k z)
+
+    /-- For the pullback square
+        ```
+        X ---f---> Y
+        |          |
+        g          h
+        |          |
+        v          v
+        Z ---k---> W
+        ```
+        the proposition `∀_f (g* z) = g* (∀_k z)` -/
+    𝔸_BeckChevalley : ∀ {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W} {z : P₀ Z},
+      IsPullback f g h k → 𝔸.map f (P₁ g z) = P₁ h (𝔸.map k z)
 
   namespace Tripos
     variable [T : Tripos P]
-
-    section BC
-      variable {X Y Z W : 𝒞} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W}
-
-      def 𝔼_BeckChevalley : IsPullback f g h k → ∀ {z : P₀ Z}, T.𝔼 f (P₁ g z) = P₁ h (T.𝔼 k z) := by
-        rintro isPB
-        have cow := T.BeckChevalley𝔼' isPB
-        apply funext_iff.mp at cow
-        rintro z
-        apply cow z
-      def 𝔸_BeckChevalley : IsPullback f g h k → ∀ {z : P₀ Z}, T.𝔸 f (P₁ g z) = P₁ h (T.𝔸 k z) := by
-        rintro isPB
-        have cow := T.BeckChevalley𝔸' isPB
-        apply funext_iff.mp at cow
-        rintro z
-        apply cow z
-    end BC
-
     variable {X Y : 𝒞} {f g : X ⟶ Y} {x : P₀ (P := P) X} {y : P₀ (P := P) Y}
 
-    def 𝔼_congr (H : f = g) : (T.𝔼 f).map = (T.𝔼 g).map := by aesop
-    def 𝔼_congr_app (H : f = g) : T.𝔼 f x = T.𝔼 g x := by aesop
-    def 𝔸_congr (H : f = g) : (T.𝔸 f).map = (T.𝔸 g).map := by aesop
-    def 𝔸_congr_app (H : f = g) : T.𝔸 f x = T.𝔸 g x := by aesop
+    omit fp ccc in
+    /-- The proposition that `∀_f(φ(x) ⇒ ψ) = (∃_f φ(x)) ⇒ ψ` -/
+    lemma frobenius : T.𝔸.map f (x ⇨ P₁ f y) = (T.𝔼.map f x) ⇨ y := frobenius' (𝔸 := T.𝔸) (𝔼 := T.𝔼)
 
-    omit fp ccc in lemma frobenius : T.𝔸 f (x ⇨ P₁ f y) = (T.𝔼 f x) ⇨ y := frobenius' (𝔸 := T.𝔸 f) (𝔼 := T.𝔼 f)
-    omit fp ccc in lemma 𝔸_top_eq_top : T.𝔸 f ⊤ = ⊤ := (T.𝔸 f).top_eq_top
-
-    omit fp ccc in lemma 𝔼_frob_left  : T.𝔼 f (x ⊓ P₁ f y) = (T.𝔼 f x) ⊓ y := (T.𝔼 f).frob_left
-    omit fp ccc in lemma 𝔼_frob_right : T.𝔼 f (P₁ f y ⊓ x) = y ⊓ (T.𝔼 f x) := (T.𝔼 f).frob_right
-
-    class TermLE {X Y : 𝒞} (t : P₀ (P := P) X) (u : P₀ Y) where
-      map : Y ⟶ X
-      le : P₁ map t ≤ u
-
-    infixr:10 " ⊑ " => Tripos.TermLE
-
-    namespace TermLE
-      variable {X Y Z : 𝒞} {s : P₀ (P := P) X} {t : P₀ (P := P) Y} {r : P₀ (P := P) Z}
-      variable [T : Tripos P]
-
-      def refl : s ⊑ s where
-        map := 𝟙 _
-        le := by aesop_cat
-      def trans (φ : s ⊑ t) (ψ : t ⊑ r) : s ⊑ r where
-        map := ψ.map ≫ φ.map
-        le := by
-          rw [P₁.map_comp_app]
-          trans (P₁ ψ.map) t
-          · gcongr
-            exact φ.le
-          · exact ψ.le
-
-      def isTop_le_isTop (H : isTop s) (φ : s ⊑ t) : isTop t := by
-        simp at H
-        rw [H] at φ
-        simp
-        apply eq_top_iff.mpr
-        trans P₁ (P := P) φ.map ⊤
-        · simp
-        · exact φ.le
-
-      def forall_le {f : X ⟶ Y} [𝔸 : RightAdjoint f] {x : P₀ (P := P) X} : 𝔸 x ⊑ x where
-        map := f
-        le := 𝔸.counit
-
-    end TermLE
   end Tripos
-
-  -- class Tripos.TermEq {X Y : 𝒞} (t : P₀ (P := P) X) (u : P₀ Y) where
-  --   iso : X ≅ Y
-  --   eq : P₁ iso.hom u = t
-
-  -- infixr:10 " ≡ " => Tripos.TermEq
-  -- namespace Tripos.TermEq
-
-  --   def eq' (φ : t ≡ u) : u = P₁ φ.iso.inv t := by
-  --     apply Eq.trans
-  --     case b => exact P₁ φ.iso.inv (P₁ φ.iso.hom u)
-  --     · rw [P₁.map_comp, φ.iso.inv_hom_id, P₁.map_id]
-  --     · congr; exact φ.eq
-
-  --   def refl : u ≡ u where
-  --     iso := Iso.refl _
-  --     eq := by rw [Iso.refl_hom, P₁.map_id]
-  --   def symm (φ : t ≡ u) : u ≡ t where
-  --     iso := Iso.symm φ.iso
-  --     eq := by rw [Iso.symm_hom, ←φ.eq']
-  --   def trans (φ : t ≡ u) (ψ : u ≡ v) : t ≡ v where
-  --     iso := Iso.trans φ.iso ψ.iso
-  --     eq := by rw [Iso.trans_hom, ←P₁.map_comp, ψ.eq ,φ.eq]
-
-  --   def isTop_stable {φ : t ≡ u} (P : isTop t) : isTop u := by
-  --     simp at P
-  --     rw [P] at φ
-  --     rw [φ.eq']
-  --     simp
-  -- end Tripos.TermEq
 end Tripos
